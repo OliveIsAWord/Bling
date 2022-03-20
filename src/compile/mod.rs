@@ -3,7 +3,7 @@
 use crate::parse::{Expr, Ident};
 
 /// Bytecode operations.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Op {
     GetConstant(usize),
     GetIdent(usize),
@@ -29,14 +29,18 @@ pub struct Code {
 impl Code {
     fn add_expr(&mut self, expr: Expr, returns_value: bool) {
         match expr {
-            Expr::Number(val) => if returns_value {
-                self.constants.push(Value::Number(val));
-                let index = self.constants.len() - 1;
-                self.ops.push(Op::GetConstant(index));
+            Expr::Number(val) => {
+                if returns_value {
+                    self.constants.push(Value::Number(val));
+                    let index = self.constants.len() - 1;
+                    self.ops.push(Op::GetConstant(index));
+                }
             }
-            Expr::Identifier(name) => if returns_value {
-                let index = self.add_ident(name);
-                self.ops.push(Op::GetIdent(index));
+            Expr::Identifier(name) => {
+                if returns_value {
+                    let index = self.add_ident(name);
+                    self.ops.push(Op::GetIdent(index));
+                }
             }
             Expr::Assignment(lhs, rhs) => {
                 self.add_expr(*rhs, true);

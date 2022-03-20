@@ -12,7 +12,7 @@ fn main() {
     let source = fs::read_to_string("examples/hello_world.bli").unwrap();
     let ast = parse(&source);
     println!("AST ->\n    {:?}", ast);
-    let bytecode = compile(ast.unwrap().clone());
+    let bytecode = compile(ast.unwrap());
     println!("BYTECODE ->\n    {:?}", bytecode);
     let mut exec = Executor::from_code(bytecode);
     println!("INITIAL EXECUTOR ->\n    {:?}", exec);
