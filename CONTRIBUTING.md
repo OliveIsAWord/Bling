@@ -1,0 +1,1 @@
+If I haven't made a commit in at least a month, feel free to make any pull request you want and I'll probably accept it. Otherwise, this is currently a highly volatile code base to contribute to, so I would not recommend.
