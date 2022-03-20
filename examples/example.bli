@@ -1,0 +1,39 @@
+sayln("Hello, world")
+sayln("3 + 5 = " add(3 5))
+
+hello = (subject) => {
+    say(fuse("Hello, " subject))
+    sayln("!\t\t")
+    how_are_you = fuse("How is your day, " subject "?")
+    sayln(how_are_you)
+}
+
+doIt = () => {
+    sayln("As 'I' always like to say, \"Do it!\"")
+}
+
+doIt()
+
+hello("sister")
+
+classmates = sever("Leah Lana Lilou Layla Lydia Larold" " ")
+
+each(classmates (peep) =>
+    say(fuse("Hello, " peep "..." "\n"))
+)
+
+fib = (n) =>
+    test (same (n 1)
+        () => 1
+        () =>
+            test (same (n 2)
+                () => 1
+                () =>
+                    add(
+                        fib(sub(n 1))
+                        fib(sub(n 2))
+                    )
+            )
+        )
+
+sayln(fib(9))

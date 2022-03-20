@@ -1,0 +1,30 @@
+rule_110_step = (bits) => {
+    bits = fuse(bits "0")
+    outer("result" "")
+    outer("a" outer("b" outer("c" 0)))
+    parse = (bit) => same(bit "1")
+    output = fuse
+    each(bits (bit) => {
+        outer("a" b)
+        outer("b" c)
+        outer("c" parse(bit))
+        outer("result" fuse(result
+            test(a
+                () => no(same(b c))
+                () => test(b
+                    () => 1
+                    () => c
+                )
+            )
+        ))
+    })
+    result
+}
+
+resultat = "1"
+iterations = 50 $ set to negative for infinite loop
+loop(() => {
+    outer("resultat" rule_110_step(resultat))
+    sayln(resultat)
+    outer("iterations" sub(iterations 1))
+})
