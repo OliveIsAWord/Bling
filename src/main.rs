@@ -11,7 +11,7 @@ use std::fs;
 // }
 
 fn main() {
-    let source = fs::read_to_string("examples/hello_world.bli").unwrap();
+    let source = fs::read_to_string("examples/dot.bli").unwrap();
     //let _ = source;
     //let source = "";
     println!("{:?}", parse(&source));
