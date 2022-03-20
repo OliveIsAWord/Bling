@@ -7,7 +7,7 @@ use nom::{
     combinator::{all_consuming, cut, map, map_res, not, opt, recognize},
     multi::{many0, many1},
     sequence::{delimited, pair, separated_pair, terminated},
-    IResult,
+    Finish, IResult,
 };
 
 use utilities::{ident, paren_args, trim_left_ws, trim_right_ws, trim_ws};
@@ -103,8 +103,10 @@ fn expr(input: &str) -> IResult<&str, Expr> {
     )))(input)
 }
 
-pub fn parse(input: &str) -> IResult<&str, Expr> {
-    map(all_consuming(trim_right_ws(many0(expr))), Expr::Block)(input)
+pub fn parse(input: &str) -> Result<Vec<Expr>, nom::error::Error<&str>> {
+    all_consuming(trim_right_ws(many0(expr)))(input)
+        .finish()
+        .map(|x| x.1)
     //application(input)
     //paren_args(expr)(input)
     //assignment_declare(input)

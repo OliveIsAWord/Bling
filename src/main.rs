@@ -1,7 +1,8 @@
-//mod compile;
+mod compile;
 mod parse;
 //mod little;
 
+use compile::compile_expr;
 use parse::parse;
 
 use std::fs;
@@ -11,8 +12,11 @@ use std::fs;
 // }
 
 fn main() {
-    let source = fs::read_to_string("examples/dot.bli").unwrap();
+    let source = fs::read_to_string("examples/hello_world.bli").unwrap();
     //let _ = source;
     //let source = "";
-    println!("{:?}", parse(&source));
+    let ast = parse(&source);
+    println!("{:?}", ast);
+    let bytecode = compile_expr(ast.unwrap()[0].clone());
+    println!("{:?}", bytecode);
 }
