@@ -11,7 +11,7 @@ pub enum Op {
     //Call,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     // None,
     Number(i64),
