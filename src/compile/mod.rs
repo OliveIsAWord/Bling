@@ -21,9 +21,6 @@ pub enum Value {
 #[derive(Debug, Default)]
 pub struct Code {
     pub ops: Vec<Op>,
-    //scope: HashMap<Ident, Value>,
-    //stack: Vec<Value>,
-    //parent: Option<Box<Code>>,
     pub idents: Vec<Ident>,
     pub constants: Vec<Value>,
 }

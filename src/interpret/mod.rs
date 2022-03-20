@@ -20,7 +20,6 @@ impl Executor {
     }
 
     pub fn run(&mut self) {
-        //use Op::*;
         for op in &self.code.ops {
             match op {
                 Op::GetConstant(val_index) => {

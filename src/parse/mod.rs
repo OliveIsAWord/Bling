@@ -107,10 +107,6 @@ pub fn parse(input: &str) -> Result<Vec<Expr>, nom::error::Error<&str>> {
     all_consuming(trim_right_ws(many0(expr)))(input)
         .finish()
         .map(|x| x.1)
-    //application(input)
-    //paren_args(expr)(input)
-    //assignment_declare(input)
-    //expr(input)
 }
 
 #[cfg(test)]
