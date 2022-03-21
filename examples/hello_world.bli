@@ -1,4 +1,7 @@
-shasha := 55
-shasha = 44
-uwu := awa := owo := shasha
-awa = 66
+blah := 6
+xo := {
+    a := blah
+    blah = 777
+    a
+}
+aaa := 7
