@@ -16,6 +16,7 @@ fn main() {
     println!("BYTECODE ->\n    {:?}", bytecode);
     let mut exec = Executor::from_code(bytecode);
     println!("INITIAL EXECUTOR ->\n    {:?}", exec);
-    exec.run();
+    let result = exec.run();
     println!("FINISHED EXECUTOR ->\n    {:?}", exec);
+    println!("RESULT ->\n    {:?}", result);
 }
