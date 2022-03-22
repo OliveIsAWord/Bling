@@ -1,3 +1,5 @@
+//! Creates an AST from Bling source code.
+
 mod utilities;
 
 use nom::{
@@ -12,16 +14,25 @@ use nom::{
 
 use utilities::{ident, paren_args, trim_left_ws, trim_right_ws, trim_ws};
 
+/// Internal representation of a variable identifier.
 pub type Ident = String;
 
+/// Every type of node in the AST.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
+    /// An integer literal.
     Number(i64),
+    /// A variable name of the form `[a-zA-Z_][a-zA-Z_0-9]*`.
     Identifier(Ident),
+    /// An expression being assigned to a variable.
     Assignment(Ident, Box<Expr>),
+    /// A variable being declared and initialized with the value of an expression.
     Declaration(Ident, Box<Expr>),
+    /// A list of expressions within curly brackets `{}`.
     Block(Vec<Expr>),
+    /// A function call.
     Application(Box<Expr>, Vec<Expr>),
+    /// A lambda function definition.
     Lambda(Vec<Ident>, Box<Expr>),
 }
 
@@ -43,6 +54,7 @@ fn identifier(input: &str) -> IResult<&str, Expr> {
     map(ident, Expr::Identifier)(input)
 }
 
+#[doc(hidden)]
 macro_rules! assign_parse {
     ($name:ident, $variant:ident, $symbol:expr) => {
         fn $name(input: &str) -> IResult<&str, Expr> {
@@ -53,6 +65,7 @@ macro_rules! assign_parse {
         }
     };
 }
+
 assign_parse! {assignment, Assignment, "="}
 assign_parse! {declaration, Declaration, ":="}
 

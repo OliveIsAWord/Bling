@@ -1,3 +1,5 @@
+//! Useful parsing methods that are not specific to Bling grammar.
+
 use nom::{
     branch::alt,
     bytes::complete::tag,

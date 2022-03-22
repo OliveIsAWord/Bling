@@ -1,3 +1,5 @@
+//! An interpreter for the Bling programming language.
+
 mod compile;
 mod interpret;
 mod parse;

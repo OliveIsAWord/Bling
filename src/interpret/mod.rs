@@ -1,3 +1,5 @@
+//! Interprets and executes bytecode.
+
 use crate::compile::{Code, Op, Value};
 use crate::parse::Ident;
 use std::collections::hash_map::Entry;
@@ -13,20 +15,26 @@ pub struct Executor {
     parent: Option<(Box<Executor>, usize)>,
 }
 
-/// Errors within the interpreter. If this is ever publicly returned, that is a serious bug.
+/// Errors within the interpreter. If this is ever publicly returned, that would constitute a serious bug.
 #[derive(Debug, Clone)]
 pub enum InternalError {
+    /// An operation that pops a value off the stack was executed when the stack was empty.
     StackUnderflow,
     //StackOverflow,
+    /// The interpreter expected to return from a subroutine when no caller existed.
     CallStackUnderflow,
+    /// An operation requested a constant value that does not exist.
     ConstantNotFound,
+    /// An operation requested a [Code] object that does not exist.
     CodeNotFound,
 }
 
 /// Errors generated from within user code.
 #[derive(Debug, Clone)]
 pub enum ScriptError {
+    /// A variable that had not been defined was read or assigned to.
     VariableNotFound,
+    /// A variable was declared twice in the same scope.
     VariableRedeclared,
 }
 
@@ -43,14 +51,12 @@ impl Executor {
     }
 
     pub fn run(&mut self) -> ExecResult<()> {
-        // Access `ops` by index to prevent simultaneous mutable references.
-        // This could also be done with mem::take to the same effect.
         loop {
             if let Some(op) = self.code.ops.get(self.op_pointer) {
                 let op = op.clone();
                 self.op_pointer += 1;
-                println!("awa {:?}", self);
-                println!("using op {:?}", op);
+                println!("Current State:\n{:?}\n", self);
+                println!("Running Op: {:?}", op);
                 match self.run_step(op) {
                     Ok(Ok(())) => (),
                     e => return e,
@@ -61,7 +67,7 @@ impl Executor {
                     Ok(()) => (),
                     // No caller to return to, so exit.
                     Err(InternalError::CallStackUnderflow) => return Ok(Ok(())),
-                    // No other error should be returned.
+                    // No other error should be returned by `exit_subroutine`.
                     Err(e) => return Err(e),
                 }
             }
@@ -96,13 +102,6 @@ impl Executor {
                 match self.scope.entry(ident) {
                     Entry::Occupied(_entry) => {
                         return Ok(Err(ScriptError::VariableRedeclared));
-                        //let existing_value = entry.get();
-                        // panic!(
-                        //     "Attempted to declare variable {} with value {:?} but was already assigned with value of {:?}",
-                        //     ident,
-                        //     value,
-                        //     existing_value,
-                        // );
                     }
                     Entry::Vacant(space) => {
                         space.insert(value);
@@ -139,7 +138,6 @@ impl Executor {
         } else if let Some(parent) = &self.parent {
             parent.0.lookup_value(name)
         } else {
-            //panic!("Could not find variable {}", name)
             Err(ScriptError::VariableNotFound)
         }
     }
@@ -157,8 +155,8 @@ impl Executor {
     fn enter_subroutine(&mut self, routine: Code) {
         let ptr = self.op_pointer;
         let child = Self::from_code(routine);
+        // `self` becomes `parent`, and `child` becomes `self`
         let mut parent = mem::replace(self, child);
-        //self.code = mem::take(&mut parent.code);
         self.stack = mem::take(&mut parent.stack);
         self.parent = Some((Box::new(parent), ptr));
         self.op_pointer = 0;
@@ -167,7 +165,6 @@ impl Executor {
     fn exit_subroutine(&mut self) -> InternalResult<()> {
         let (parent, ptr) = mem::take(&mut self.parent).ok_or(InternalError::CallStackUnderflow)?;
         let child = mem::replace(self, *parent);
-        //self.code = child.code;
         self.stack = child.stack;
         self.op_pointer = ptr;
         Ok(())
