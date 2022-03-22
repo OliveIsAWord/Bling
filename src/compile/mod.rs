@@ -45,44 +45,45 @@ enum Return {
     Keep,
 }
 
-impl Return {
-    /// Returns a boolean value representing whether to generate a return value.
-    pub fn keep(self) -> bool {
-        self == Self::Keep
-    }
-}
+// impl Return {
+//     /// Returns a boolean value representing whether to generate a return value.
+//     pub fn keep(self) -> bool {
+//         self == Self::Keep
+//     }
+// }
 
 impl Code {
-    fn add_expr(&mut self, expr: Expr, returns: Return) {
+    fn add_expr(&mut self, expr: Expr, return_mode: Return) {
+        let does_return = return_mode == Return::Keep;
         match expr {
             Expr::Number(val) => {
-                if returns.keep() {
+                if does_return {
                     self.constants.push(Value::Number(val));
                     let index = self.constants.len() - 1;
                     self.ops.push(Op::GetConstant(index));
                 }
             }
             Expr::Identifier(name) => {
-                if returns.keep() {
+                if does_return {
                     self.ops.push(Op::GetIdent(name));
                 }
             }
             Expr::Assignment(lhs, rhs) => {
                 self.add_expr(*rhs, Return::Keep);
                 self.ops.push(Op::Assign(lhs.clone()));
-                if returns.keep() {
+                if does_return {
                     self.ops.push(Op::GetIdent(lhs));
                 }
             }
             Expr::Declaration(lhs, rhs) => {
                 self.add_expr(*rhs, Return::Keep);
                 self.ops.push(Op::Declare(lhs.clone()));
-                if returns.keep() {
+                if does_return {
                     self.ops.push(Op::GetIdent(lhs));
                 }
             }
             Expr::Block(exprs) => {
-                let code = Self::compile(exprs, returns);
+                let code = Self::compile(exprs, return_mode);
                 self.constants.push(Value::Bytecode(code));
                 let index = self.constants.len() - 1;
                 self.ops.push(Op::GetConstant(index));
@@ -93,14 +94,15 @@ impl Code {
         }
     }
 
-    fn compile(mut exprs: Vec<Expr>, returns: Return) -> Self {
+    fn compile(mut exprs: Vec<Expr>, return_mode: Return) -> Self {
+        let does_return = return_mode == Return::Keep;
         let mut code = Self::default();
         if let Some(last_expr) = exprs.pop() {
             for expr in exprs {
                 code.add_expr(expr, Return::Discard);
             }
-            code.add_expr(last_expr, returns);
-        } else if returns.keep() {
+            code.add_expr(last_expr, return_mode);
+        } else if does_return {
             code.constants = vec![Value::None];
             code.ops = vec![Op::GetConstant(0)];
         }
