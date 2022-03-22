@@ -13,7 +13,7 @@ pub enum Op {
     Assign(Ident),
     /// Pop a value from the stack and declare a variable in the current scope initialized with said value. If the variable has already been declared in the current scope, a [`VariableRedeclared`](crate::interpret::ScriptError::VariableRedeclared) error is thrown.
     Declare(Ident),
-    /// Retrieve a predefined bytecode object and execute it. This bytecode can leave an extra value on the stack as its return value.
+    /// Pop a bytecode object from the stack and execute it. Additionally, some number of values are popped from the parent stack and pushed onto the child stack. This code may leave a single value on the stack as its return value.
     Call(usize),
 }
 
@@ -22,8 +22,10 @@ pub enum Op {
 pub enum Value {
     /// A null value that is returned when there is no other possible value. The canonical representation of this value is the empty block `{}`.
     None,
-    /// An integer. Note that in a future version, this value will be upgraded to a bigint.
+    /// An integer value. Note that in a future version, this value will be upgraded to a bigint.
     Number(i64),
+    /// An executable bytecode value.
+    Bytecode(Code),
 }
 
 /// Represents an executable bytecode object, consisting of a list of bytecode operations and a collection of associated values.
@@ -32,7 +34,6 @@ pub struct Code {
     pub ops: Vec<Op>,
     pub idents: Vec<Ident>,
     pub constants: Vec<Value>,
-    pub codes: Vec<Code>, // FIXME: Better name
 }
 
 /// A boolean flag that signals whether the return value for an expression should be generated.
@@ -82,9 +83,11 @@ impl Code {
             }
             Expr::Block(exprs) => {
                 let code = Self::compile(exprs, returns);
-                self.codes.push(code);
-                let index = self.codes.len() - 1;
-                self.ops.push(Op::Call(index));
+                self.constants.push(Value::Bytecode(code));
+                let index = self.constants.len() - 1;
+                self.ops.push(Op::GetConstant(index));
+                // A block has no arguments to read from the stack.
+                self.ops.push(Op::Call(0));
             }
             _ => todo!(),
         }

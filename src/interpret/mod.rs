@@ -20,13 +20,10 @@ pub struct Executor {
 pub enum InternalError {
     /// An operation that pops a value off the stack was executed when the stack was empty.
     StackUnderflow,
-    //StackOverflow,
     /// The interpreter expected to return from a subroutine when no caller existed.
     CallStackUnderflow,
     /// An operation requested a constant value that does not exist.
     ConstantNotFound,
-    /// An operation requested a [Code] object that does not exist.
-    CodeNotFound,
 }
 
 /// Errors generated from within user code.
@@ -36,6 +33,8 @@ pub enum ScriptError {
     VariableNotFound,
     /// A variable was declared twice in the same scope.
     VariableRedeclared,
+    /// The code attempted to call a non-code value.
+    TypeNotCallable,
 }
 
 pub type InternalResult<T> = Result<T, InternalError>;
@@ -98,19 +97,22 @@ impl Executor {
             //     self.stack.push(val);
             // }
             Op::Declare(ident) => {
-                let value = self.stack.pop().ok_or(InternalError::StackUnderflow)?;
+                let value = self.pop_stack()?;
                 match self.scope.entry(ident) {
+                    // If the variable is already defined *in this scope*, it's a redeclaration.
                     Entry::Occupied(_entry) => {
                         return Ok(Err(ScriptError::VariableRedeclared));
                     }
+                    // Otherwise, initialize the variable with the given value.
                     Entry::Vacant(space) => {
                         space.insert(value);
                     }
                 }
             }
             Op::Assign(ident) => {
-                let value = self.stack.pop().ok_or(InternalError::StackUnderflow)?;
+                let value = self.pop_stack()?;
                 match self.lookup_value_mut(ident) {
+                    // If the variable is already defined, then reassign it.
                     Ok(entry_ref) => {
                         *entry_ref = value;
                     }
@@ -119,17 +121,18 @@ impl Executor {
                     }
                 }
             }
-            Op::Call(code_index) => {
-                let block_code = self
-                    .code
-                    .codes
-                    .get(code_index)
-                    .ok_or(InternalError::CodeNotFound)?
-                    .clone();
-                self.enter_subroutine(block_code);
+            Op::Call(num_args) => {
+                match self.pop_stack()? {
+                    Value::Bytecode(code) => self.enter_subroutine(code, num_args),
+                    _ => return Ok(Err(ScriptError::TypeNotCallable)),
+                }
             }
         }
         Ok(Ok(()))
+    }
+
+    fn pop_stack(&mut self) -> InternalResult<Value> {
+        self.stack.pop().ok_or(InternalError::StackUnderflow)
     }
 
     fn lookup_value(&self, name: Ident) -> ScriptResult<&Value> {
@@ -152,7 +155,7 @@ impl Executor {
         }
     }
 
-    fn enter_subroutine(&mut self, routine: Code) {
+    fn enter_subroutine(&mut self, routine: Code, _num_args: usize) {
         let ptr = self.op_pointer;
         let child = Self::from_code(routine);
         // `self` becomes `parent`, and `child` becomes `self`
