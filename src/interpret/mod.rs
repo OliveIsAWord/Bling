@@ -121,12 +121,10 @@ impl Executor {
                     }
                 }
             }
-            Op::Call(num_args) => {
-                match self.pop_stack()? {
-                    Value::Bytecode(code) => self.enter_subroutine(code, num_args),
-                    _ => return Ok(Err(ScriptError::TypeNotCallable)),
-                }
-            }
+            Op::Call(num_args) => match self.pop_stack()? {
+                Value::Bytecode(code) => self.enter_subroutine(code, num_args),
+                _ => return Ok(Err(ScriptError::TypeNotCallable)),
+            },
         }
         Ok(Ok(()))
     }
