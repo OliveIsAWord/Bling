@@ -1,0 +1,15 @@
+a := 1
+bad1 := () => print(a)
+bad1()
+{
+    a := 2
+    bad1()
+}
+
+bad2 := {}
+{
+    x := 5
+    bad2 = () => print(x)
+    bad2()
+}
+bad2()
