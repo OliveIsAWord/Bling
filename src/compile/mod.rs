@@ -9,6 +9,8 @@ pub enum Op {
     GetConstant(usize),
     /// Retrieve the value of a variable from the nearest scope it's defined, and push it to the stack. If the variable has not been defined, a [`VariableNotFound`](crate::interpret::ScriptError::VariableNotFound) error is thrown.
     GetIdent(Ident),
+    /// Pop a value from the stack and discard it.
+    Drop,
     /// Pop a value from the stack and assign it to a variable from the nearest scope. If the variable has not been defined, a [`VariableNotFound`](crate::interpret::ScriptError::VariableNotFound) error is thrown.
     Assign(Ident),
     /// Pop a value from the stack and declare a variable in the current scope initialized with said value. If the variable has already been declared in the current scope, a [`VariableRedeclared`](crate::interpret::ScriptError::VariableRedeclared) error is thrown.
@@ -103,7 +105,17 @@ impl Code {
                     self.ops.push(Op::GetConstant(index));
                 }
             }
-            _ => todo!(),
+            Expr::Application(func, args) => {
+                let num_args = args.len();
+                for arg in args {
+                    self.add_expr(arg, Return::Keep);
+                }
+                self.add_expr(*func, Return::Keep);
+                self.ops.push(Op::Call(num_args));
+                if !does_return {
+                    self.ops.push(Op::Drop);
+                }
+            }
         }
     }
 

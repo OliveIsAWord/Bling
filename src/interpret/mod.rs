@@ -94,8 +94,11 @@ impl Executor {
                     return Ok(Err(e));
                 }
             },
+            Op::Drop => {
+                self.pop_stack()?;
+            }
             // Op::Dup => {
-            //     let val = self.stack.last().unwrap().clone();
+            //     let val = self.pop_stack()?;
             //     self.stack.push(val);
             // }
             Op::Declare(ident) => {
