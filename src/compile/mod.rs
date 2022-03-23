@@ -23,16 +23,21 @@ pub enum Op {
 pub enum Intrinsic {
     Print,
     Add,
+    While,
 }
 
-pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 2] =
-    [("print", Intrinsic::Print), ("add", Intrinsic::Add)];
+pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 3] = [
+    ("print", Intrinsic::Print),
+    ("add", Intrinsic::Add),
+    ("while", Intrinsic::While),
+];
 
 impl Intrinsic {
     pub fn num_params(self) -> usize {
         match self {
             Self::Print => 1,
             Self::Add => 2,
+            Self::While => 2,
         }
     }
 }
@@ -46,8 +51,19 @@ pub enum Value {
     Number(i64),
     /// An executable bytecode value, as well as the number of arguments it requires (if any).
     Bytecode(Code, usize),
+    /// An intrinsic function whose behavior is handled by the compiler/interpreter.
+    Builtin(Intrinsic),
+}
 
-    BuiltinFunction(Intrinsic),
+impl Value {
+    pub fn truthiness(&self) -> bool {
+        match self {
+            Self::None => false,
+            Self::Number(n) => *n != 0,
+            Self::Bytecode(..) => true,
+            Self::Builtin(_) => true,
+        }
+    }
 }
 
 /// Represents an executable bytecode object, consisting of a list of bytecode operations and a collection of associated values.

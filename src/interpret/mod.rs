@@ -1,6 +1,6 @@
 //! Interprets and executes bytecode.
 
-use crate::compile::{Code, Intrinsic, INTRINSIC_IDENTS, Op, Value};
+use crate::compile::{Code, Intrinsic, Op, Value, INTRINSIC_IDENTS};
 use crate::parse::Ident;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -13,6 +13,7 @@ pub struct Executor {
     scope: HashMap<Ident, Value>,
     stack: Vec<Value>,
     parent: Option<(Box<Executor>, usize)>,
+    depth: usize,
 }
 
 /// Errors within the interpreter. If this is ever publicly returned, that would constitute a serious bug.
@@ -47,6 +48,16 @@ pub type InternalResult<T> = Result<T, InternalError>;
 pub type ScriptResult<T> = Result<T, ScriptError>;
 pub type ExecResult<T> = InternalResult<ScriptResult<T>>;
 
+macro_rules! double_try {
+    ($e:expr) => {
+        match $e {
+            Ok(Ok(v)) => v,
+            Ok(Err(e)) => return Ok(Err(e)),
+            Err(e) => return Err(e),
+        }
+    };
+}
+
 impl Executor {
     pub fn from_code(code: Code) -> Self {
         Self {
@@ -57,7 +68,7 @@ impl Executor {
 
     pub fn initialize_builtins(&mut self) {
         for (name, intrinsic) in INTRINSIC_IDENTS {
-            self.scope.insert(name.into(), Value::BuiltinFunction(intrinsic));
+            self.scope.insert(name.into(), Value::Builtin(intrinsic));
         }
     }
 
@@ -72,15 +83,10 @@ impl Executor {
                     Ok(Ok(())) => (),
                     e => return e,
                 }
+            } else if self.depth > 0 {
+                self.exit_subroutine()?;
             } else {
-                match self.exit_subroutine() {
-                    // Successfully returned to caller.
-                    Ok(()) => (),
-                    // No caller to return to, so exit.
-                    Err(InternalError::CallStackUnderflow) => return Ok(Ok(())),
-                    // No other error should be returned by `exit_subroutine`.
-                    Err(e) => return Err(e),
-                }
+                return Ok(Ok(()));
             }
         }
     }
@@ -143,11 +149,11 @@ impl Executor {
                     }
                     self.enter_subroutine(code, num_args);
                 }
-                Value::BuiltinFunction(intrinsic) => {
+                Value::Builtin(intrinsic) => {
                     if intrinsic.num_params() != num_args {
                         return Ok(Err(ScriptError::ArgumentCount));
                     }
-                    match self.exec_builtin(intrinsic) {
+                    match self.run_builtin(intrinsic) {
                         Ok(Ok(())) => (),
                         e => return e,
                     }
@@ -190,6 +196,7 @@ impl Executor {
         self.stack = mem::take(&mut parent.stack);
         self.parent = Some((Box::new(parent), ptr));
         self.op_pointer = 0;
+        self.depth += 1;
     }
 
     fn exit_subroutine(&mut self) -> InternalResult<()> {
@@ -197,21 +204,49 @@ impl Executor {
         let child = mem::replace(self, *parent);
         self.stack = child.stack;
         self.op_pointer = ptr;
+        // self.depth -= 1;
         Ok(())
     }
 
-    fn exec_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
+    fn run_code_object(&mut self, code: Code) -> ExecResult<Value> {
+        // Run as if we are the main execution.
+        let depth = self.depth;
+        self.enter_subroutine(code, 0);
+        self.depth = 0;
+        double_try!(self.run());
+        self.exit_subroutine()?;
+        self.depth = depth;
+        self.pop_stack().map(Ok)
+        //Ok(Ok(()))
+    }
+
+    fn run_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
+        use Value::*;
         let return_value = match intrinsic {
             Intrinsic::Print => {
                 let val = self.pop_stack()?;
                 println!("{:?}", val);
-                Value::None
+                None
             }
             Intrinsic::Add => {
                 let val1 = self.pop_stack()?;
                 let val2 = self.pop_stack()?;
                 match (val1, val2) {
-                    (Value::Number(x), Value::Number(y)) => Value::Number(x + y),
+                    (Number(x), Number(y)) => Number(x + y),
+                    _ => return Ok(Err(ScriptError::ArgumentType)),
+                }
+            }
+            Intrinsic::While => {
+                let val2 = self.pop_stack()?;
+                let val1 = self.pop_stack()?;
+                match (val1, val2) {
+                    (Bytecode(condition, 0), Bytecode(body, 0)) => {
+                        let mut output = None;
+                        while double_try!(self.run_code_object(condition.clone())).truthiness() {
+                            output = double_try!(self.run_code_object(body.clone()));
+                        }
+                        output
+                    }
                     _ => return Ok(Err(ScriptError::ArgumentType)),
                 }
             }
