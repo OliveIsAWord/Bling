@@ -24,15 +24,15 @@ pub enum Value {
     None,
     /// An integer value. Note that in a future version, this value will be upgraded to a bigint.
     Number(i64),
-    /// An executable bytecode value.
-    Bytecode(Code),
+    /// An executable bytecode value, as well as the number of arguments it requires (if any).
+    Bytecode(Code, usize),
 }
 
 /// Represents an executable bytecode object, consisting of a list of bytecode operations and a collection of associated values.
 #[derive(Debug, Default, Clone)]
 pub struct Code {
     pub ops: Vec<Op>,
-    pub idents: Vec<Ident>,
+    //pub idents: Vec<Ident>,
     pub constants: Vec<Value>,
 }
 
@@ -84,11 +84,24 @@ impl Code {
             }
             Expr::Block(exprs) => {
                 let code = Self::compile(exprs, return_mode);
-                self.constants.push(Value::Bytecode(code));
+                self.constants.push(Value::Bytecode(code, 0));
                 let index = self.constants.len() - 1;
                 self.ops.push(Op::GetConstant(index));
                 // A block has no arguments to read from the stack.
                 self.ops.push(Op::Call(0));
+            }
+            Expr::Lambda(params, body) => {
+                if does_return {
+                    let mut code = Self::default();
+                    let num_params = params.len();
+                    for param in params {
+                        code.ops.push(Op::Declare(param));
+                    }
+                    code.add_expr(*body, Return::Keep);
+                    self.constants.push(Value::Bytecode(code, num_params));
+                    let index = self.constants.len() - 1;
+                    self.ops.push(Op::GetConstant(index));
+                }
             }
             _ => todo!(),
         }

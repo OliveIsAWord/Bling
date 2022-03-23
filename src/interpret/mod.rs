@@ -35,6 +35,8 @@ pub enum ScriptError {
     VariableRedeclared,
     /// The code attempted to call a non-code value.
     TypeNotCallable,
+    /// The code attempted to call a function with the wrong number of arguments.
+    ArgumentCount,
 }
 
 pub type InternalResult<T> = Result<T, InternalError>;
@@ -122,7 +124,12 @@ impl Executor {
                 }
             }
             Op::Call(num_args) => match self.pop_stack()? {
-                Value::Bytecode(code) => self.enter_subroutine(code, num_args),
+                Value::Bytecode(code, num_params) => {
+                    if num_params != num_args {
+                        return Ok(Err(ScriptError::ArgumentCount));
+                    }
+                    self.enter_subroutine(code, num_args);
+                }
                 _ => return Ok(Err(ScriptError::TypeNotCallable)),
             },
         }

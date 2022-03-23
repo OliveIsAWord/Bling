@@ -11,7 +11,7 @@ use parse::parse;
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("examples/scope_test.bli").unwrap();
+    let source = fs::read_to_string("examples/lambda.bli").unwrap();
     let ast = parse(&source);
     println!("AST ->\n    {:?}", ast);
     let bytecode = compile(ast.unwrap());

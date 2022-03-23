@@ -1,0 +1,1 @@
+choose_middle := (x y z) => y
