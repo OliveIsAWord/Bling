@@ -1,0 +1,4 @@
+x := 34
+y := 35
+z := add(x y)
+print(z)

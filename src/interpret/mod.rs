@@ -1,6 +1,6 @@
 //! Interprets and executes bytecode.
 
-use crate::compile::{Code, Intrinsic, Op, Value};
+use crate::compile::{Code, Intrinsic, INTRINSIC_IDENTS, Op, Value};
 use crate::parse::Ident;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -24,6 +24,8 @@ pub enum InternalError {
     CallStackUnderflow,
     /// An operation requested a constant value that does not exist.
     ConstantNotFound,
+    // /// Execution halted while values were still on the stack.
+    // StackLeftovers,
 }
 
 /// Errors generated from within user code.
@@ -37,6 +39,8 @@ pub enum ScriptError {
     TypeNotCallable,
     /// The code attempted to call a function with the wrong number of arguments.
     ArgumentCount,
+    /// One or more arguments had an invalid type for the function called.
+    ArgumentType,
 }
 
 pub type InternalResult<T> = Result<T, InternalError>;
@@ -52,8 +56,9 @@ impl Executor {
     }
 
     pub fn initialize_builtins(&mut self) {
-        self.scope
-            .insert("print".into(), Value::BuiltinFunction(Intrinsic::Print));
+        for (name, intrinsic) in INTRINSIC_IDENTS {
+            self.scope.insert(name.into(), Value::BuiltinFunction(intrinsic));
+        }
     }
 
     pub fn run(&mut self) -> ExecResult<()> {
@@ -196,13 +201,22 @@ impl Executor {
     }
 
     fn exec_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
-        match intrinsic {
+        let return_value = match intrinsic {
             Intrinsic::Print => {
                 let val = self.pop_stack()?;
                 println!("{:?}", val);
-                self.stack.push(Value::None);
+                Value::None
             }
-        }
+            Intrinsic::Add => {
+                let val1 = self.pop_stack()?;
+                let val2 = self.pop_stack()?;
+                match (val1, val2) {
+                    (Value::Number(x), Value::Number(y)) => Value::Number(x + y),
+                    _ => return Ok(Err(ScriptError::ArgumentType)),
+                }
+            }
+        };
+        self.stack.push(return_value);
         Ok(Ok(()))
     }
 }

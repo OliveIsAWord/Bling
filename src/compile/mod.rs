@@ -22,12 +22,17 @@ pub enum Op {
 #[derive(Debug, Clone, Copy)]
 pub enum Intrinsic {
     Print,
+    Add,
 }
+
+pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 2] =
+    [("print", Intrinsic::Print), ("add", Intrinsic::Add)];
 
 impl Intrinsic {
     pub fn num_params(self) -> usize {
         match self {
             Self::Print => 1,
+            Self::Add => 2,
         }
     }
 }
@@ -111,7 +116,8 @@ impl Code {
                 if does_return {
                     let mut code = Self::default();
                     let num_params = params.len();
-                    for param in params {
+                    // Arguments pushed off the stack will be reversed.
+                    for param in params.into_iter().rev() {
                         code.ops.push(Op::Declare(param));
                     }
                     code.add_expr(*body, Return::Keep);
