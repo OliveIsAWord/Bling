@@ -25,12 +25,18 @@ pub enum Op {
 pub enum Intrinsic {
     Print,
     Add,
+    Sub,
+    Mul,
+    Div,
     While,
 }
 
-pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 3] = [
+pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 6] = [
     ("print", Intrinsic::Print),
     ("add", Intrinsic::Add),
+    ("sub", Intrinsic::Sub),
+    ("mul", Intrinsic::Mul),
+    ("div", Intrinsic::Div),
     ("while", Intrinsic::While),
 ];
 
@@ -38,7 +44,7 @@ impl Intrinsic {
     pub fn num_params(self) -> usize {
         match self {
             Self::Print => 1,
-            Self::Add => 2,
+            Self::Add | Self::Sub | Self::Mul | Self::Div => 2,
             Self::While => 2,
         }
     }

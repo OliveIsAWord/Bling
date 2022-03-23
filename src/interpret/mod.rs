@@ -2,6 +2,7 @@
 
 use crate::compile::{Code, Intrinsic, Op, Value, INTRINSIC_IDENTS};
 use crate::parse::Ident;
+use num_bigint::BigInt;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::mem;
@@ -58,6 +59,17 @@ macro_rules! double_try {
     };
 }
 
+macro_rules! arithmetic_intrinsic {
+    ($self:ident, $oper:expr) => {{
+        let val2 = $self.pop_stack()?;
+        let val1 = $self.pop_stack()?;
+        match (val1, val2) {
+            (Number(x), Number(y)) => $oper(x, y),
+            _ => return Ok(Err(ScriptError::ArgumentType)),
+        }
+    }};
+}
+
 impl Executor {
     pub fn from_code(code: Code) -> Self {
         Self {
@@ -79,10 +91,7 @@ impl Executor {
                 self.op_pointer += 1;
                 //println!("Current State:\n{:?}\n", self);
                 //println!("Running Op: {:?}", op);
-                match self.run_step(op) {
-                    Ok(Ok(())) => (),
-                    e => return e,
-                }
+                double_try!(self.run_step(op));
             } else if self.depth > 0 {
                 self.exit_subroutine()?;
             } else {
@@ -153,10 +162,7 @@ impl Executor {
                     if intrinsic.num_params() != num_args {
                         return Ok(Err(ScriptError::ArgumentCount));
                     }
-                    match self.run_builtin(intrinsic) {
-                        Ok(Ok(())) => (),
-                        e => return e,
-                    }
+                    double_try!(self.run_builtin(intrinsic));
                 }
                 _ => return Ok(Err(ScriptError::TypeNotCallable)),
             },
@@ -228,14 +234,13 @@ impl Executor {
                 println!("{:?}", val);
                 None
             }
-            Intrinsic::Add => {
-                let val1 = self.pop_stack()?;
-                let val2 = self.pop_stack()?;
-                match (val1, val2) {
-                    (Number(x), Number(y)) => Number(x + y),
-                    _ => return Ok(Err(ScriptError::ArgumentType)),
-                }
-            }
+            Intrinsic::Add => arithmetic_intrinsic!(self, |x, y| Number(x + y)),
+            Intrinsic::Sub => arithmetic_intrinsic!(self, |x, y| Number(x - y)),
+            Intrinsic::Mul => arithmetic_intrinsic!(self, |x, y| Number(x * y)),
+            Intrinsic::Div => arithmetic_intrinsic!(self, |x: BigInt, y: BigInt| x
+                .checked_div(&y)
+                .map(Number)
+                .unwrap_or(None)),
             Intrinsic::While => {
                 let val2 = self.pop_stack()?;
                 let val1 = self.pop_stack()?;
