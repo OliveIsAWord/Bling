@@ -19,6 +19,19 @@ pub enum Op {
     Call(usize),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Intrinsic {
+    Print,
+}
+
+impl Intrinsic {
+    pub fn num_params(self) -> usize {
+        match self {
+            Self::Print => 1,
+        }
+    }
+}
+
 /// A value which can be created and manipulated by user code.
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -28,6 +41,8 @@ pub enum Value {
     Number(i64),
     /// An executable bytecode value, as well as the number of arguments it requires (if any).
     Bytecode(Code, usize),
+
+    BuiltinFunction(Intrinsic),
 }
 
 /// Represents an executable bytecode object, consisting of a list of bytecode operations and a collection of associated values.

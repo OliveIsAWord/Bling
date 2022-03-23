@@ -11,14 +11,17 @@ use parse::parse;
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("examples/mutable_globals.bli").unwrap();
+    let source = fs::read_to_string("examples/hello_world.bli").unwrap();
     let ast = parse(&source);
     println!("AST ->\n    {:?}", ast);
     let bytecode = compile(ast.unwrap());
     println!("BYTECODE ->\n    {:?}", bytecode);
     let mut exec = Executor::from_code(bytecode);
+    exec.initialize_builtins();
     println!("INITIAL EXECUTOR ->\n    {:?}", exec);
+    println!("\n=== OUTPUT ===");
     let result = exec.run();
+    println!("==============\n");
     println!("FINISHED EXECUTOR ->\n    {:?}", exec);
     println!("RESULT ->\n    {:?}", result);
 }

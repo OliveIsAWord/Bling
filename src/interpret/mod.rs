@@ -1,6 +1,6 @@
 //! Interprets and executes bytecode.
 
-use crate::compile::{Code, Op, Value};
+use crate::compile::{Code, Intrinsic, Op, Value};
 use crate::parse::Ident;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -33,7 +33,7 @@ pub enum ScriptError {
     VariableNotFound,
     /// A variable was declared twice in the same scope.
     VariableRedeclared,
-    /// The code attempted to call a non-code value.
+    /// The code attempted to call a non-code/non-builtin value.
     TypeNotCallable,
     /// The code attempted to call a function with the wrong number of arguments.
     ArgumentCount,
@@ -51,13 +51,18 @@ impl Executor {
         }
     }
 
+    pub fn initialize_builtins(&mut self) {
+        self.scope
+            .insert("print".into(), Value::BuiltinFunction(Intrinsic::Print));
+    }
+
     pub fn run(&mut self) -> ExecResult<()> {
         loop {
             if let Some(op) = self.code.ops.get(self.op_pointer) {
                 let op = op.clone();
                 self.op_pointer += 1;
-                println!("Current State:\n{:?}\n", self);
-                println!("Running Op: {:?}", op);
+                //println!("Current State:\n{:?}\n", self);
+                //println!("Running Op: {:?}", op);
                 match self.run_step(op) {
                     Ok(Ok(())) => (),
                     e => return e,
@@ -133,6 +138,15 @@ impl Executor {
                     }
                     self.enter_subroutine(code, num_args);
                 }
+                Value::BuiltinFunction(intrinsic) => {
+                    if intrinsic.num_params() != num_args {
+                        return Ok(Err(ScriptError::ArgumentCount));
+                    }
+                    match self.exec_builtin(intrinsic) {
+                        Ok(Ok(())) => (),
+                        e => return e,
+                    }
+                }
                 _ => return Ok(Err(ScriptError::TypeNotCallable)),
             },
         }
@@ -179,5 +193,16 @@ impl Executor {
         self.stack = child.stack;
         self.op_pointer = ptr;
         Ok(())
+    }
+
+    fn exec_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
+        match intrinsic {
+            Intrinsic::Print => {
+                let val = self.pop_stack()?;
+                println!("{:?}", val);
+                self.stack.push(Value::None);
+            }
+        }
+        Ok(Ok(()))
     }
 }
