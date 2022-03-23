@@ -6,7 +6,7 @@ Note: Goals further in the future are more likely to change.
 
 ### Essential
 - [x] Parsing
-- [ ] IR Generation / Interpreter (in progress)
+- [x] IR Generation / Interpreter
 
 ### Important
 - [ ] Language Documentation
