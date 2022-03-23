@@ -6,11 +6,13 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{char, digit1},
-    combinator::{all_consuming, cut, map, map_res, not, opt, recognize},
+    combinator::{all_consuming, cut, map, not, opt, recognize},
     multi::{many0, many1},
     sequence::{delimited, pair, separated_pair, terminated},
     Finish, IResult,
 };
+
+use num_bigint::BigInt;
 
 use utilities::{ident, paren_args, trim_left_ws, trim_right_ws, trim_ws};
 
@@ -21,7 +23,7 @@ pub type Ident = String;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     /// An integer literal.
-    Number(i64),
+    Number(BigInt),
     /// A variable name of the form `[a-zA-Z_][a-zA-Z_0-9]*`.
     Identifier(Ident),
     /// An expression being assigned to a variable.
@@ -37,12 +39,18 @@ pub enum Expr {
 }
 
 fn number(input: &str) -> IResult<&str, Expr> {
-    map_res(
+    map(
         recognize(pair(
             opt(char('-')),
             many1(terminated(digit1, many0(char('_')))),
         )),
-        |out: &str| out.replace('_', "").parse().map(Expr::Number),
+        |out: &str| {
+            Expr::Number(
+                out.replace('_', "")
+                    .parse()
+                    .expect("Parser accepted input as number but BigInt parser errored."),
+            )
+        },
     )(input)
 }
 

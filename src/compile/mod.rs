@@ -1,6 +1,8 @@
 //! Compiles an AST to bytecode.
 
 use crate::parse::{Expr, Ident};
+use num_bigint::BigInt;
+use num_traits::identities::Zero;
 
 /// Bytecode operations.
 #[derive(Debug, Clone, PartialEq)]
@@ -48,7 +50,7 @@ pub enum Value {
     /// A null value that is returned when there is no other possible value. The canonical representation of this value is the empty block `{}`.
     None,
     /// An integer value. Note that in a future version, this value will be upgraded to a bigint.
-    Number(i64),
+    Number(BigInt),
     /// An executable bytecode value, as well as the number of arguments it requires (if any).
     Bytecode(Code, usize),
     /// An intrinsic function whose behavior is handled by the compiler/interpreter.
@@ -59,7 +61,7 @@ impl Value {
     pub fn truthiness(&self) -> bool {
         match self {
             Self::None => false,
-            Self::Number(n) => *n != 0,
+            Self::Number(n) => !n.is_zero(),
             Self::Bytecode(..) => true,
             Self::Builtin(_) => true,
         }
