@@ -44,8 +44,7 @@ impl Intrinsic {
     pub fn num_params(self) -> usize {
         match self {
             Self::Print => 1,
-            Self::Add | Self::Sub | Self::Mul | Self::Div => 2,
-            Self::While => 2,
+            Self::Add | Self::Sub | Self::Mul | Self::Div | Self::While => 2,
         }
     }
 }
@@ -68,8 +67,7 @@ impl Value {
         match self {
             Self::None => false,
             Self::Number(n) => !n.is_zero(),
-            Self::Bytecode(..) => true,
-            Self::Builtin(_) => true,
+            Self::Bytecode(..) | Self::Builtin(_) => true,
         }
     }
 }

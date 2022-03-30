@@ -74,7 +74,7 @@ impl Executor {
     pub fn from_code(code: Code) -> Self {
         Self {
             code,
-            ..Default::default()
+            ..Self::default()
         }
     }
 
@@ -227,26 +227,25 @@ impl Executor {
     }
 
     fn run_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
-        use Value::*;
+        use Value::{Bytecode, Number};
         let return_value = match intrinsic {
             Intrinsic::Print => {
                 let val = self.pop_stack()?;
                 println!("{:?}", val);
-                None
+                Value::None
             }
             Intrinsic::Add => arithmetic_intrinsic!(self, |x, y| Number(x + y)),
             Intrinsic::Sub => arithmetic_intrinsic!(self, |x, y| Number(x - y)),
             Intrinsic::Mul => arithmetic_intrinsic!(self, |x, y| Number(x * y)),
             Intrinsic::Div => arithmetic_intrinsic!(self, |x: BigInt, y: BigInt| x
                 .checked_div(&y)
-                .map(Number)
-                .unwrap_or(None)),
+                .map_or(Value::None, Number)),
             Intrinsic::While => {
                 let val2 = self.pop_stack()?;
                 let val1 = self.pop_stack()?;
                 match (val1, val2) {
                     (Bytecode(condition, 0), Bytecode(body, 0)) => {
-                        let mut output = None;
+                        let mut output = Value::None;
                         while double_try!(self.run_code_object(condition.clone())).truthiness() {
                             output = double_try!(self.run_code_object(body.clone()));
                         }

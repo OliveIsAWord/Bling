@@ -44,7 +44,7 @@ pub fn ident(input: &str) -> IResult<&str, String> {
             alt((alpha1, tag("_"))),
             cut(many0(alt((alphanumeric1, tag("_"))))),
         )),
-        |out: &str| out.to_owned(),
+        std::borrow::ToOwned::to_owned,
     )(input)
 }
 
