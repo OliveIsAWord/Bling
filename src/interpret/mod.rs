@@ -1,8 +1,12 @@
 //! Interprets and executes bytecode.
 
+mod intrinsics;
+#[macro_use]
+mod macros;
+
 use crate::compile::{Code, Intrinsic, Op, Value, INTRINSIC_IDENTS};
 use crate::parse::Ident;
-use num_bigint::BigInt;
+
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::mem;
@@ -48,27 +52,6 @@ pub enum ScriptError {
 pub type InternalResult<T> = Result<T, InternalError>;
 pub type ScriptResult<T> = Result<T, ScriptError>;
 pub type ExecResult<T> = InternalResult<ScriptResult<T>>;
-
-macro_rules! double_try {
-    ($e:expr) => {
-        match $e {
-            Ok(Ok(v)) => v,
-            Ok(Err(e)) => return Ok(Err(e)),
-            Err(e) => return Err(e),
-        }
-    };
-}
-
-macro_rules! arithmetic_intrinsic {
-    ($self:ident, $oper:expr) => {{
-        let val2 = $self.pop_stack()?;
-        let val1 = $self.pop_stack()?;
-        match (val1, val2) {
-            (Number(x), Number(y)) => $oper(x, y),
-            _ => return Ok(Err(ScriptError::ArgumentType)),
-        }
-    }};
-}
 
 impl Executor {
     pub fn from_code(code: Code) -> Self {
@@ -227,34 +210,14 @@ impl Executor {
     }
 
     fn run_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
-        use Value::{Bytecode, Number};
-        let return_value = match intrinsic {
-            Intrinsic::Print => {
-                let val = self.pop_stack()?;
-                println!("{:?}", val);
-                Value::None
-            }
-            Intrinsic::Add => arithmetic_intrinsic!(self, |x, y| Number(x + y)),
-            Intrinsic::Sub => arithmetic_intrinsic!(self, |x, y| Number(x - y)),
-            Intrinsic::Mul => arithmetic_intrinsic!(self, |x, y| Number(x * y)),
-            Intrinsic::Div => arithmetic_intrinsic!(self, |x: BigInt, y: BigInt| x
-                .checked_div(&y)
-                .map_or(Value::None, Number)),
-            Intrinsic::While => {
-                let val2 = self.pop_stack()?;
-                let val1 = self.pop_stack()?;
-                match (val1, val2) {
-                    (Bytecode(condition, 0), Bytecode(body, 0)) => {
-                        let mut output = Value::None;
-                        while double_try!(self.run_code_object(condition.clone())).truthiness() {
-                            output = double_try!(self.run_code_object(body.clone()));
-                        }
-                        output
-                    }
-                    _ => return Ok(Err(ScriptError::ArgumentType)),
-                }
-            }
-        };
+        let return_value = double_try!(match intrinsic {
+            Intrinsic::Print => intrinsics::print(self),
+            Intrinsic::While => intrinsics::while_loop(self),
+            Intrinsic::Add => intrinsics::add(self),
+            Intrinsic::Sub => intrinsics::sub(self),
+            Intrinsic::Mul => intrinsics::mul(self),
+            Intrinsic::Div => intrinsics::div(self),
+        });
         self.stack.push(return_value);
         Ok(Ok(()))
     }
