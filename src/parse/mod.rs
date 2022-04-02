@@ -140,7 +140,10 @@ mod tests {
         let source = "func(42)";
         assert_eq!(
             expr(source).unwrap().1,
-            Application(Box::new(Identifier("func".to_owned())), vec![Number(42.into())])
+            Application(
+                Box::new(Identifier("func".to_owned())),
+                vec![Number(42.into())]
+            )
         );
     }
 
