@@ -11,12 +11,12 @@ use parse::parse;
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("examples/arithmetic.bli").unwrap();
+    let source = fs::read_to_string("examples/loop.bli").unwrap();
     let ast = parse(&source);
     println!("AST ->\n    {:?}", ast);
-    let bytecode = compile(ast.unwrap());
+    let (bytecode, idents) = compile(ast.unwrap());
     println!("BYTECODE ->\n    {:?}", bytecode);
-    let mut exec = Executor::from_code(bytecode);
+    let mut exec = Executor::from_code(bytecode, idents);
     exec.initialize_builtins();
     println!("INITIAL EXECUTOR ->\n    {:?}", exec);
     println!("\n=== OUTPUT ===");

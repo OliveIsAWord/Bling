@@ -1,22 +1,25 @@
 //! Compiles an AST to bytecode.
 
 use crate::parse::{Expr, Ident};
+use indexmap::IndexSet;
 use num_bigint::BigInt;
 use num_traits::identities::Zero;
 
 /// Bytecode operations.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Op {
     /// Push a predefined value to the stack.
     GetConstant(usize),
     /// Retrieve the value of a variable from the nearest scope it's defined, and push it to the stack. If the variable has not been defined, a [`VariableNotFound`](crate::interpret::ScriptError::VariableNotFound) error is thrown.
-    GetIdent(Ident),
+    GetIdent(usize),
     /// Pop a value from the stack and discard it.
     Drop,
+    /// Peek a value from the stack, copy it, and push the copy to the stack.
+    Dup,
     /// Pop a value from the stack and assign it to a variable from the nearest scope. If the variable has not been defined, a [`VariableNotFound`](crate::interpret::ScriptError::VariableNotFound) error is thrown.
-    Assign(Ident),
+    Assign(usize),
     /// Pop a value from the stack and declare a variable in the current scope initialized with said value. If the variable has already been declared in the current scope, a [`VariableRedeclared`](crate::interpret::ScriptError::VariableRedeclared) error is thrown.
-    Declare(Ident),
+    Declare(usize),
     /// Pop a bytecode object from the stack and execute it. Additionally, some number of values are popped from the parent stack and pushed onto the child stack. This code may leave a single value on the stack as its return value.
     Call(usize),
 }
@@ -97,7 +100,7 @@ enum Return {
 // }
 
 impl Code {
-    fn add_expr(&mut self, expr: Expr, return_mode: Return) {
+    fn add_expr(&mut self, expr: Expr, ident_list: &mut IndexSet<Ident>, return_mode: Return) {
         let does_return = return_mode == Return::Keep;
         match expr {
             Expr::Number(val) => {
@@ -109,25 +112,28 @@ impl Code {
             }
             Expr::Identifier(name) => {
                 if does_return {
-                    self.ops.push(Op::GetIdent(name));
+                    let name_index = insert_index(ident_list, name);
+                    self.ops.push(Op::GetIdent(name_index));
                 }
             }
             Expr::Assignment(lhs, rhs) => {
-                self.add_expr(*rhs, Return::Keep);
-                self.ops.push(Op::Assign(lhs.clone()));
+                self.add_expr(*rhs, ident_list, Return::Keep);
                 if does_return {
-                    self.ops.push(Op::GetIdent(lhs));
+                    self.ops.push(Op::Dup);
                 }
+                let name_index = insert_index(ident_list, lhs);
+                self.ops.push(Op::Assign(name_index));
             }
             Expr::Declaration(lhs, rhs) => {
-                self.add_expr(*rhs, Return::Keep);
-                self.ops.push(Op::Declare(lhs.clone()));
+                self.add_expr(*rhs, ident_list, Return::Keep);
                 if does_return {
-                    self.ops.push(Op::GetIdent(lhs));
+                    self.ops.push(Op::Dup);
                 }
+                let name_index = insert_index(ident_list, lhs);
+                self.ops.push(Op::Declare(name_index));
             }
             Expr::Block(exprs) => {
-                let code = Self::compile(exprs, return_mode);
+                let code = Self::compile(exprs, ident_list, return_mode);
                 self.constants.push(Value::Bytecode(code, 0));
                 let index = self.constants.len() - 1;
                 self.ops.push(Op::GetConstant(index));
@@ -140,9 +146,10 @@ impl Code {
                     let num_params = params.len();
                     // Arguments pushed off the stack will be reversed.
                     for param in params.into_iter().rev() {
-                        code.ops.push(Op::Declare(param));
+                        let name_index = insert_index(ident_list, param);
+                        code.ops.push(Op::Declare(name_index));
                     }
-                    code.add_expr(*body, Return::Keep);
+                    code.add_expr(*body, ident_list, Return::Keep);
                     self.constants.push(Value::Bytecode(code, num_params));
                     let index = self.constants.len() - 1;
                     self.ops.push(Op::GetConstant(index));
@@ -151,9 +158,9 @@ impl Code {
             Expr::Application(func, args) => {
                 let num_args = args.len();
                 for arg in args {
-                    self.add_expr(arg, Return::Keep);
+                    self.add_expr(arg, ident_list, Return::Keep);
                 }
-                self.add_expr(*func, Return::Keep);
+                self.add_expr(*func, ident_list, Return::Keep);
                 self.ops.push(Op::Call(num_args));
                 if !does_return {
                     self.ops.push(Op::Drop);
@@ -162,14 +169,18 @@ impl Code {
         }
     }
 
-    fn compile(mut exprs: Vec<Expr>, return_mode: Return) -> Self {
+    fn compile(
+        mut exprs: Vec<Expr>,
+        ident_list: &mut IndexSet<Ident>,
+        return_mode: Return,
+    ) -> Self {
         let does_return = return_mode == Return::Keep;
         let mut code = Self::default();
         if let Some(last_expr) = exprs.pop() {
             for expr in exprs {
-                code.add_expr(expr, Return::Discard);
+                code.add_expr(expr, ident_list, Return::Discard);
             }
-            code.add_expr(last_expr, return_mode);
+            code.add_expr(last_expr, ident_list, return_mode);
         } else if does_return {
             code.constants = vec![Value::None];
             code.ops = vec![Op::GetConstant(0)];
@@ -178,7 +189,16 @@ impl Code {
     }
 }
 
-/// Compiles a series of [`Expr`]s into a [`Code`] object.
-pub fn compile(exprs: Vec<Expr>) -> Code {
-    Code::compile(exprs, Return::Discard)
+/// Compiles a series of [`Expr`]s into a [`Code`] object and a list of identifiers used.
+pub fn compile(exprs: Vec<Expr>) -> (Code, IndexSet<Ident>) {
+    let mut idents = IndexSet::new();
+    let code = Code::compile(exprs, &mut idents, Return::Discard);
+    (code, idents)
+}
+
+fn insert_index<T>(set: &mut IndexSet<T>, value: T) -> usize
+where
+    T: Eq + std::hash::Hash,
+{
+    set.insert_full(value).0
 }

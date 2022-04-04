@@ -5,19 +5,19 @@ mod intrinsics;
 mod macros;
 
 use crate::compile::{Code, Intrinsic, Op, Value, INTRINSIC_IDENTS};
-use crate::parse::Ident;
-
+use indexmap::IndexSet;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::mem;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Executor {
     code: Code,
+    idents: IndexSet<String>,
     op_pointer: usize,
-    scope: HashMap<Ident, Value>,
+    scope: HashMap<usize, Value>,
     stack: Vec<Value>,
-    parent: Option<(Box<Executor>, usize)>,
+    parent: Option<(Box<Self>, usize)>,
     depth: usize,
 }
 
@@ -54,23 +54,26 @@ pub type ScriptResult<T> = Result<T, ScriptError>;
 pub type ExecResult<T> = InternalResult<ScriptResult<T>>;
 
 impl Executor {
-    pub fn from_code(code: Code) -> Self {
+    pub fn from_code(code: Code, idents: IndexSet<String>) -> Self {
         Self {
             code,
+            idents,
             ..Self::default()
         }
     }
 
+    /// Adds every builtin function whose names appear anywhere in the current code to the current scope.
     pub fn initialize_builtins(&mut self) {
         for (name, intrinsic) in INTRINSIC_IDENTS {
-            self.scope.insert(name.into(), Value::Builtin(intrinsic));
+            if let Some(name_index) = self.idents.get_index_of(name) {
+                self.scope.insert(name_index, Value::Builtin(intrinsic));
+            }
         }
     }
 
     pub fn run(&mut self) -> ExecResult<()> {
         loop {
-            if let Some(op) = self.code.ops.get(self.op_pointer) {
-                let op = op.clone();
+            if let Some(&op) = self.code.ops.get(self.op_pointer) {
                 self.op_pointer += 1;
                 //println!("Current State:\n{:?}\n", self);
                 //println!("Running Op: {:?}", op);
@@ -105,10 +108,10 @@ impl Executor {
             Op::Drop => {
                 self.pop_stack()?;
             }
-            // Op::Dup => {
-            //     let val = self.pop_stack()?;
-            //     self.stack.push(val);
-            // }
+            Op::Dup => {
+                let val = self.peek_stack()?.clone();
+                self.stack.push(val);
+            }
             Op::Declare(ident) => {
                 let value = self.pop_stack()?;
                 match self.scope.entry(ident) {
@@ -157,21 +160,25 @@ impl Executor {
         self.stack.pop().ok_or(InternalError::StackUnderflow)
     }
 
-    fn lookup_value(&self, name: Ident) -> ScriptResult<&Value> {
-        if let Some(val) = self.scope.get(&name) {
+    fn peek_stack(&self) -> InternalResult<&Value> {
+        self.stack.last().ok_or(InternalError::StackUnderflow)
+    }
+
+    fn lookup_value(&self, name_index: usize) -> ScriptResult<&Value> {
+        if let Some(val) = self.scope.get(&name_index) {
             Ok(val)
         } else if let Some(parent) = &self.parent {
-            parent.0.lookup_value(name)
+            parent.0.lookup_value(name_index)
         } else {
             Err(ScriptError::VariableNotFound)
         }
     }
 
-    fn lookup_value_mut(&mut self, name: Ident) -> ScriptResult<&mut Value> {
-        if let Some(val) = self.scope.get_mut(&name) {
+    fn lookup_value_mut(&mut self, name_index: usize) -> ScriptResult<&mut Value> {
+        if let Some(val) = self.scope.get_mut(&name_index) {
             Ok(val)
         } else if let Some(parent) = &mut self.parent {
-            parent.0.lookup_value_mut(name)
+            parent.0.lookup_value_mut(name_index)
         } else {
             Err(ScriptError::VariableNotFound)
         }
@@ -179,7 +186,8 @@ impl Executor {
 
     fn enter_subroutine(&mut self, routine: Code, _num_args: usize) {
         let ptr = self.op_pointer;
-        let child = Self::from_code(routine);
+        let idents = mem::take(&mut self.idents);
+        let child = Self::from_code(routine, idents);
         // `self` becomes `parent`, and `child` becomes `self`
         let mut parent = mem::replace(self, child);
         self.stack = mem::take(&mut parent.stack);
@@ -206,7 +214,11 @@ impl Executor {
         self.exit_subroutine()?;
         self.depth = depth;
         self.pop_stack().map(Ok)
-        //Ok(Ok(()))
+        // let mut child = self.clone();
+        // child.enter_subroutine(code, 0);
+        // child.depth = 0;
+        // double_try!(child.run());
+        // child.pop_stack().map(Ok)
     }
 
     fn run_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
