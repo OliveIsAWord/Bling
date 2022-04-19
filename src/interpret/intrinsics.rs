@@ -43,21 +43,36 @@ macro_rules! arithmetic_intrinsic {
     };
 }
 
-fn checked_rem_euclid(u: BigInt, d: BigInt) -> Option<BigInt> {
-    if d.is_zero() {
+fn checked_rem_euclid(lhs: BigInt, rhs: BigInt) -> Option<BigInt> {
+    if rhs.is_zero() {
         return None;
     }
-    let r = u % d.clone();
-    Some(if r.is_negative() {
-        if d.is_negative() {
-            r - d
-        } else {
-            r + d
-        }
+    let r = lhs % rhs.clone();
+    Some(if r.is_negative() ^ rhs.is_negative() {
+        r + rhs
     } else {
         r
     })
+}
 
+#[test]
+fn euclidian() {
+    assert_eq!(
+        checked_rem_euclid(13_i8.into(), 10_i8.into()).unwrap(),
+        3_u8.into()
+    );
+    assert_eq!(
+        checked_rem_euclid((-13_i8).into(), 10_i8.into()).unwrap(),
+        7_u8.into()
+    );
+    assert_eq!(
+        checked_rem_euclid((-13_i8).into(), (-10_i8).into()).unwrap(),
+        (-3).into()
+    );
+    assert_eq!(
+        checked_rem_euclid(13_i8.into(), (-10_i8).into()).unwrap(),
+        (-7).into()
+    );
 }
 
 arithmetic_intrinsic! {add, |x, y| Value::Number(x + y)}
@@ -97,7 +112,7 @@ pub fn list(_exec: &mut Executor) -> ExecResult<Value> {
 //     }
 // }
 
-pub fn pop(exec: &mut Executor) -> ExecResult<Value> {
+pub fn last(exec: &mut Executor) -> ExecResult<Value> {
     if let Value::List(mut list) = exec.pop_stack()? {
         Ok(list.pop().ok_or(ScriptError::ArgumentValue))
     } else {

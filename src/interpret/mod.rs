@@ -233,7 +233,7 @@ impl Executor {
             Intrinsic::Div => intrinsics::div(self),
             Intrinsic::Mod => intrinsics::modulo(self),
             Intrinsic::List => intrinsics::list(self),
-            Intrinsic::Pop => intrinsics::pop(self),
+            Intrinsic::Last => intrinsics::last(self),
             Intrinsic::Push => intrinsics::push(self),
             Intrinsic::Len => intrinsics::len(self),
             Intrinsic::Map => intrinsics::map(self),

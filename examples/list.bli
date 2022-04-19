@@ -4,7 +4,7 @@ a := push(x 42)
 b := push(a 43)
 c := push(b 44)
 print(c)
-print(pop(c))
+print(last(c))
 print(len(c))
 
 d := map(

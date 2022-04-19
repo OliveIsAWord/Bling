@@ -34,7 +34,7 @@ pub enum Intrinsic {
     Div,
     Mod,
     List,
-    Pop,
+    Last,
     Push,
     Len,
     Map,
@@ -53,7 +53,7 @@ pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 16] = [
     ("div", Intrinsic::Div),
     ("mod", Intrinsic::Mod),
     ("list", Intrinsic::List),
-    ("pop", Intrinsic::Pop),
+    ("last", Intrinsic::Last),
     ("push", Intrinsic::Push),
     ("len", Intrinsic::Len),
     ("map", Intrinsic::Map),
@@ -67,7 +67,7 @@ impl Intrinsic {
     pub fn num_params(self) -> usize {
         match self {
             Self::List => 0,
-            Self::Len | Self::Pop | Self::Print => 1,
+            Self::Len | Self::Last | Self::Print => 1,
             Self::Add
             | Self::At
             | Self::Div
