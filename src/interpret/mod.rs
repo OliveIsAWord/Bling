@@ -47,6 +47,8 @@ pub enum ScriptError {
     ArgumentCount,
     /// One or more arguments had an invalid type for the function called.
     ArgumentType,
+    /// One or more arguments had the right type but an invalid value for the function called.
+    ArgumentValue,
 }
 
 pub type InternalResult<T> = Result<T, InternalError>;
@@ -229,6 +231,16 @@ impl Executor {
             Intrinsic::Sub => intrinsics::sub(self),
             Intrinsic::Mul => intrinsics::mul(self),
             Intrinsic::Div => intrinsics::div(self),
+            Intrinsic::Mod => intrinsics::modulo(self),
+            Intrinsic::List => intrinsics::list(self),
+            Intrinsic::Pop => intrinsics::pop(self),
+            Intrinsic::Push => intrinsics::push(self),
+            Intrinsic::Len => intrinsics::len(self),
+            Intrinsic::Map => intrinsics::map(self),
+            Intrinsic::Fold => intrinsics::fold(self),
+            Intrinsic::Filter => intrinsics::filter(self),
+            Intrinsic::Zip => intrinsics::zip(self),
+            Intrinsic::At => intrinsics::at(self),
         });
         self.stack.push(return_value);
         Ok(Ok(()))

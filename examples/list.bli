@@ -1,0 +1,36 @@
+x := list()
+print(x)
+a := push(x 42)
+b := push(a 43)
+c := push(b 44)
+print(c)
+print(pop(c))
+print(len(c))
+
+d := map(
+    (x) => {sub(40 x)}
+    c
+)
+print(d)
+
+e := fold(
+    (x y) => {sub(x y)}
+    push(push(push(list() 100) 5) 3)
+)
+print(e)
+
+f := filter(
+    (x) => sub(mod(x 2) 1)
+    push(push(c 45) 46)
+)
+print(f)
+
+g := zip(
+    push(push(push(list() 4) 0) 3)
+    push(push(push(list() 1) 9) 6)
+)
+print(g)
+print(at(c 1))
+print(at(c -1))
+print(at(c 100))
+print(at(c -100))

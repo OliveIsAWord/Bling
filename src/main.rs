@@ -11,7 +11,7 @@ use parse::parse;
 use std::fs;
 
 fn main() {
-    let source = fs::read_to_string("examples/loop.bli").unwrap();
+    let source = fs::read_to_string("examples/list.bli").unwrap();
     let ast = parse(&source);
     println!("AST ->\n    {:?}", ast);
     let (bytecode, idents) = compile(ast.unwrap());

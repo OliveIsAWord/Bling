@@ -14,7 +14,7 @@ pub enum Op {
     GetIdent(usize),
     /// Pop a value from the stack and discard it.
     Drop,
-    /// Peek a value from the stack, copy it, and push the copy to the stack.
+    /// Duplicate the value at the top of the stack.
     Dup,
     /// Pop a value from the stack and assign it to a variable from the nearest scope. If the variable has not been defined, a [`VariableNotFound`](crate::interpret::ScriptError::VariableNotFound) error is thrown.
     Assign(usize),
@@ -27,27 +27,59 @@ pub enum Op {
 #[derive(Debug, Clone, Copy)]
 pub enum Intrinsic {
     Print,
+    While,
     Add,
     Sub,
     Mul,
     Div,
-    While,
+    Mod,
+    List,
+    Pop,
+    Push,
+    Len,
+    Map,
+    Fold,
+    Filter,
+    Zip,
+    At,
 }
 
-pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 6] = [
+pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 16] = [
     ("print", Intrinsic::Print),
+    ("while", Intrinsic::While),
     ("add", Intrinsic::Add),
     ("sub", Intrinsic::Sub),
     ("mul", Intrinsic::Mul),
     ("div", Intrinsic::Div),
-    ("while", Intrinsic::While),
+    ("mod", Intrinsic::Mod),
+    ("list", Intrinsic::List),
+    ("pop", Intrinsic::Pop),
+    ("push", Intrinsic::Push),
+    ("len", Intrinsic::Len),
+    ("map", Intrinsic::Map),
+    ("fold", Intrinsic::Fold),
+    ("filter", Intrinsic::Filter),
+    ("zip", Intrinsic::Zip),
+    ("at", Intrinsic::At),
 ];
 
 impl Intrinsic {
     pub fn num_params(self) -> usize {
         match self {
-            Self::Print => 1,
-            Self::Add | Self::Sub | Self::Mul | Self::Div | Self::While => 2,
+            Self::List => 0,
+            Self::Len | Self::Pop | Self::Print => 1,
+            Self::Add
+            | Self::At
+            | Self::Div
+            | Self::Filter
+            | Self::Fold
+            | Self::Map
+            | Self::Mod
+            | Self::Mul
+            | Self::Push
+            | Self::Sub
+            | Self::While
+            | Self::Zip => 2,
         }
     }
 }
@@ -57,8 +89,10 @@ impl Intrinsic {
 pub enum Value {
     /// A null value that is returned when there is no other possible value. The canonical representation of this value is the empty block `{}`.
     None,
-    /// An integer value. Note that in a future version, this value will be upgraded to a bigint.
+    /// An integer value.
     Number(BigInt),
+    /// A list of values.
+    List(Vec<Value>),
     /// An executable bytecode value, as well as the number of arguments it requires (if any).
     Bytecode(Code, usize),
     /// An intrinsic function whose behavior is handled by the compiler/interpreter.
@@ -70,6 +104,7 @@ impl Value {
         match self {
             Self::None => false,
             Self::Number(n) => !n.is_zero(),
+            Self::List(list) => list.len() > 0,
             Self::Bytecode(..) | Self::Builtin(_) => true,
         }
     }
