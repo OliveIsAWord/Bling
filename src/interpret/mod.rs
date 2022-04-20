@@ -104,6 +104,10 @@ impl Executor {
                     self.stack.push(val);
                 }
                 Err(e) => {
+                    eprintln!(
+                        "{:?} accessed but not defined",
+                        self.idents.get_index(ident)
+                    );
                     return Ok(Err(e));
                 }
             },
@@ -135,6 +139,10 @@ impl Executor {
                         *entry_ref = value;
                     }
                     Err(e) => {
+                        eprintln!(
+                            "{:?} assigned to but not defined",
+                            self.idents.get_index(ident)
+                        );
                         return Ok(Err(e));
                     }
                 }
