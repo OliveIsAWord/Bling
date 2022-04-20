@@ -5,7 +5,7 @@ use num_traits::{Signed, Zero};
 
 pub fn print(exec: &mut Executor) -> ExecResult<Value> {
     let val = exec.pop_stack()?;
-    println!("{:?}", val);
+    println!("{}", val);
     Ok(Ok(Value::None))
 }
 

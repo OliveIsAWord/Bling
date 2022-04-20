@@ -4,6 +4,7 @@ use crate::parse::{Expr, Ident};
 use indexmap::IndexSet;
 use num_bigint::BigInt;
 use num_traits::identities::Zero;
+use std::fmt;
 
 /// Bytecode operations.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -106,6 +107,32 @@ impl Value {
             Self::Number(n) => !n.is_zero(),
             Self::List(list) => list.len() > 0,
             Self::Bytecode(..) | Self::Builtin(_) => true,
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use fmt::Write;
+        match self {
+            Self::None => f.write_str("None"),
+            Self::Number(n) => write!(f, "{}", n),
+            Self::List(list) => {
+                f.write_char('[')?;
+                for (i, elem) in list.iter().enumerate() {
+                    if i != 0 {
+                        f.write_str(", ")?;
+                    }
+                    write!(f, "{}", elem)?;
+                }
+                f.write_char(']')
+            }
+            Self::Bytecode(_, num_params) => write!(f, "<{} argument function>", num_params),
+            Self::Builtin(intrinsic) => {
+                let mut name = format!("{:?}", intrinsic);
+                name.make_ascii_lowercase();
+                write!(f, "<builtin function {}>", name)
+            }
         }
     }
 }
