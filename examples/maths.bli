@@ -1,0 +1,88 @@
+if_else := (condition body_true body_false) => {
+    is_true := 1
+    return := {}
+    while(() => condition () => {
+        is_true = condition = {}
+        return = body_true()
+    })
+    while(() => is_true () => {
+        is_true = {}
+        return = body_false()
+    })
+    return
+}
+
+bool := (x) =>
+    if_else(x
+        () => 1
+        () => 0
+    )
+
+not := (x) => sub(1 bool(x))
+
+is_negative := (n) => {
+    x := mod(1 n)
+    bool(if_else(n
+        () => mul(x sub(x 1))
+        () => {}
+    ))
+}
+
+greater_than := (x y) => is_negative(sub(y x))
+less_than := (x y) => is_negative(sub(x y))
+
+range := (start end) => {
+    vals := list()
+    i := start
+    while(() => less_than(i end) () => {
+        vals = push(vals i)
+        i = add(i 1)
+    })
+    vals
+}
+
+is_prime := (n) =>
+    fold(
+        (x y) => mul(x y)
+        push(
+            map(
+                (x) => mod(n x)
+                range(2 add(div(n 2) 1))
+            )
+            greater_than(n 1)
+        )
+    )
+
+primes := filter(is_prime range(0 100))
+print(primes)
+print(fold((x y) => mul(x y) primes))
+
+fib := (x) =>
+    if_else(less_than(x 2)
+        () => 1
+        () => add(fib(sub(x 1)) fib(sub(x 2)))
+    )
+
+fibonacci_numbers := map(fib range(0 10))
+print(fibonacci_numbers)
+
+fact := (x) =>
+    fold(
+        (x y) => mul(x y)
+        push(range(2 add(x 1)) 1)
+    )
+
+factorial_numbers := map(fact range(0 10))
+print(factorial_numbers)
+
+collatz := (x) =>
+    if_else(less_than(x 2)
+        () => 0
+        () => if_else(mod(x 2)
+            () => add(1 collatz(add(mul(x 3) 1)))
+            () => add(1 collatz(div(x 2)))
+        )
+    )
+
+collatz_numbers := map(collatz range(1 11))
+print(collatz_numbers)
