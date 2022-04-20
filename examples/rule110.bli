@@ -1,0 +1,71 @@
+if_else := (condition body_true body_false) => {
+    is_true := 1
+    return := {}
+    while(() => condition () => {
+        is_true = condition = {}
+        return = body_true()
+    })
+    while(() => is_true () => {
+        is_true = {}
+        return = body_false()
+    })
+    return
+}
+
+bool := (x) => {
+    if_else(x
+        () => 1
+        () => 0
+    )
+}
+
+is_negative := (n) => {
+    bool(if_else(n
+        () => sub(mod(1 n) 1)
+        () => {}
+    ))
+}
+
+range := (start end) => {
+    vals := list()
+    i := start
+    while(() => is_negative(sub(i end)) () => {
+        vals = push(vals i)
+        i = add(i 1)
+    })
+    vals
+}
+
+get_bit := (num bit) => {
+    while(() => bit () => {
+        num = div(num 2)
+        bit = sub(bit 1)
+    })
+    mod(num 2)
+}
+
+rule_iteration := (rule cells) => {
+    next_gen := list()
+    a := b := c := 0
+    cells = push(cells 0)
+    map(
+        (bit) => {
+            a = b
+            b = c
+            c = bit
+            bit_index := add(add(mul(a 4) mul(b 2)) c)
+            next_gen = push(next_gen get_bit(rule bit_index))
+        }
+        cells
+    )
+    next_gen
+}
+
+rule := 110
+iterations := 20
+gen := push(list() 1)
+while(() => iterations = sub(iterations 1) () => {
+    print(gen)
+    gen = rule_iteration(rule gen)
+})
+print(gen)
