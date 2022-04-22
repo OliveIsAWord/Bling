@@ -85,6 +85,7 @@ arithmetic_intrinsic! {modulo,
     |x: BigInt, y: BigInt| checked_rem_euclid(x, y).map_or(Value::None, Value::Number)
 }
 
+#[allow(clippy::unnecessary_wraps)]
 pub fn list(_exec: &mut Executor) -> ExecResult<Value> {
     Ok(Ok(Value::List(vec![])))
 }
@@ -145,7 +146,7 @@ pub fn map(exec: &mut Executor) -> ExecResult<Value> {
     if let Value::Bytecode(code, 1) = val1 {
         if let Value::List(list) = val2 {
             let mut results = Vec::with_capacity(list.len());
-            for item in list.into_iter() {
+            for item in list {
                 exec.stack.push(item);
                 let mapped_item = double_try!(exec.run_code_object(code.clone()));
                 results.push(mapped_item);
@@ -188,7 +189,7 @@ pub fn filter(exec: &mut Executor) -> ExecResult<Value> {
     if let Value::Bytecode(code, 1) = val1 {
         if let Value::List(list) = val2 {
             let mut results = vec![];
-            for item in list.into_iter() {
+            for item in list {
                 exec.stack.push(item.clone());
                 if double_try!(exec.run_code_object(code.clone())).truthiness() {
                     results.push(item);

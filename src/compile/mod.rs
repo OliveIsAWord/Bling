@@ -105,7 +105,7 @@ impl Value {
         match self {
             Self::None => false,
             Self::Number(n) => !n.is_zero(),
-            Self::List(list) => list.len() > 0,
+            Self::List(list) => !list.is_empty(),
             Self::Bytecode(..) | Self::Builtin(_) => true,
         }
     }
