@@ -7,4 +7,4 @@ macro_rules! double_try {
         }
     };
 }
-pub(crate) use double_try;
+pub(super) use double_try;

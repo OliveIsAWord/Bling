@@ -65,7 +65,7 @@ pub const INTRINSIC_IDENTS: [(&str, Intrinsic); 16] = [
 ];
 
 impl Intrinsic {
-    pub fn num_params(self) -> usize {
+    pub const fn num_params(self) -> usize {
         match self {
             Self::List => 0,
             Self::Len | Self::Last | Self::Print => 1,

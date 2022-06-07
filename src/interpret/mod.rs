@@ -175,24 +175,36 @@ impl Executor {
     }
 
     fn lookup_value(&self, name_index: usize) -> ScriptResult<&Value> {
-        if let Some(val) = self.scope.get(&name_index) {
-            Ok(val)
-        } else if let Some(parent) = &self.parent {
-            parent.0.lookup_value(name_index)
-        } else {
-            Err(ScriptError::VariableNotFound)
-        }
+        self.scope
+            .get(&name_index)
+            .or_else(|| {
+                self.parent
+                    .as_ref()
+                    .and_then(|p| p.0.lookup_value(name_index).ok())
+            })
+            .ok_or(ScriptError::VariableNotFound)
     }
 
     fn lookup_value_mut(&mut self, name_index: usize) -> ScriptResult<&mut Value> {
-        if let Some(val) = self.scope.get_mut(&name_index) {
-            Ok(val)
-        } else if let Some(parent) = &mut self.parent {
-            parent.0.lookup_value_mut(name_index)
-        } else {
-            Err(ScriptError::VariableNotFound)
-        }
+        self.scope
+            .get_mut(&name_index)
+            .or_else(|| {
+                self.parent
+                    .as_mut()
+                    .and_then(|p| p.0.lookup_value_mut(name_index).ok())
+            })
+            .ok_or(ScriptError::VariableNotFound)
     }
+
+    // fn lookup_value_mut(&mut self, name_index: usize) -> ScriptResult<&mut Value> {
+    //     if let Some(val) = self.scope.get_mut(&name_index) {
+    //         Ok(val)
+    //     } else if let Some(parent) = &mut self.parent {
+    //         parent.0.lookup_value_mut(name_index)
+    //     } else {
+    //         Err(ScriptError::VariableNotFound)
+    //     }
+    // }
 
     fn enter_subroutine(&mut self, routine: Code, _num_args: usize) {
         let ptr = self.op_pointer;
