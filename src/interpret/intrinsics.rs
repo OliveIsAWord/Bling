@@ -1,7 +1,7 @@
 use super::macros::double_try;
 use super::{ExecResult, Executor, ScriptError, Value};
-use num_bigint::BigInt;
-use num_traits::{Signed, Zero};
+use crate::compile::TinyInt;
+//use num_traits::{Signed, Zero};
 
 pub fn print(exec: &mut Executor) -> ExecResult<Value> {
     let val = exec.pop_stack()?;
@@ -43,7 +43,7 @@ macro_rules! arithmetic_intrinsic {
     };
 }
 
-fn checked_rem_euclid(lhs: BigInt, rhs: BigInt) -> Option<BigInt> {
+fn checked_rem_euclid(lhs: TinyInt, rhs: TinyInt) -> Option<TinyInt> {
     if rhs.is_zero() {
         return None;
     }
@@ -79,10 +79,10 @@ arithmetic_intrinsic! {add, |x, y| Value::Number(x + y)}
 arithmetic_intrinsic! {sub, |x, y| Value::Number(x - y)}
 arithmetic_intrinsic! {mul, |x, y| Value::Number(x * y)}
 arithmetic_intrinsic! {div,
-    |x: BigInt, y: BigInt| x.checked_div(&y).map_or(Value::None, Value::Number)
+    |x: TinyInt, y: TinyInt| x.checked_div(&y).map_or(Value::None, Value::Number)
 }
 arithmetic_intrinsic! {modulo,
-    |x: BigInt, y: BigInt| checked_rem_euclid(x, y).map_or(Value::None, Value::Number)
+    |x: TinyInt, y: TinyInt| checked_rem_euclid(x, y).map_or(Value::None, Value::Number)
 }
 
 #[allow(clippy::unnecessary_wraps)]
@@ -230,7 +230,7 @@ pub fn at(exec: &mut Executor) -> ExecResult<Value> {
     if let Value::List(list) = val1 {
         if let Value::Number(n) = val2 {
             let none = Ok(Ok(Value::None));
-            let index = if n < BigInt::zero() {
+            let index = if n.is_negative() {
                 match (-n).try_into() {
                     Ok(neg_index) => match list.len().checked_sub(neg_index) {
                         Some(index) => index,

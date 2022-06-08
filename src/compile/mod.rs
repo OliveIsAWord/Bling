@@ -1,10 +1,12 @@
 //! Compiles an AST to bytecode.
 
+mod tiny_int;
+
 use crate::parse::{Expr, Ident};
 use indexmap::IndexSet;
-use num_bigint::BigInt;
-use num_traits::identities::Zero;
+//use num_traits::identities::Zero;
 use std::fmt;
+pub use tiny_int::TinyInt;
 
 /// Bytecode operations.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -91,7 +93,7 @@ pub enum Value {
     /// A null value that is returned when there is no other possible value. The canonical representation of this value is the empty block `{}`.
     None,
     /// An integer value.
-    Number(BigInt),
+    Number(TinyInt),
     /// A list of values.
     List(Vec<Value>),
     /// An executable bytecode value, as well as the number of arguments it requires (if any).
@@ -167,7 +169,7 @@ impl Code {
         match expr {
             Expr::Number(val) => {
                 if does_return {
-                    self.constants.push(Value::Number(val));
+                    self.constants.push(Value::Number(val.into()));
                     let index = self.constants.len() - 1;
                     self.ops.push(Op::GetConstant(index));
                 }
