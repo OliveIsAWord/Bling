@@ -70,7 +70,14 @@ macro_rules! impl_op {
 impl_op! {ops::Add, add, checked_add}
 impl_op! {ops::Sub, sub, checked_sub}
 impl_op! {ops::Mul, mul, checked_mul}
-//impl_op! {ops::Div, div}
+
+impl ops::Div for TinyInt {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        self.checked_div(&rhs).unwrap()
+    }
+}
+
 impl_op! {ops::Rem, rem, checked_rem}
 
 impl ops::Neg for TinyInt {
