@@ -1,9 +1,9 @@
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};
-use std::convert::{From, TryFrom};
+use std::convert::{From, TryFrom, Into};
 use std::{fmt, ops};
 
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TinyInt {
     Inline(isize),
     Heap(BigInt),
@@ -34,7 +34,7 @@ impl TinyInt {
         };
         match (self, rhs) {
             (Inline(x), &Inline(y)) => checked_isize_div(x, y),
-            (Heap(x), &Inline(y)) => (y != 0).then(|| Heap(x / y)),
+            (Heap(x), &Inline(y)) => (y != 0).then(|| (x / y).into()),
             (Inline(x), Heap(y)) => {
                 if let Ok(d) = y.try_into() {
                     checked_isize_div(x, d)
@@ -44,7 +44,7 @@ impl TinyInt {
                     Some(Inline(0))
                 }
             }
-            (Heap(x), Heap(y)) => x.checked_div(y).map(Heap),
+            (Heap(x), Heap(y)) => x.checked_div(y).map(Into::into),
         }
     }
 }
@@ -58,9 +58,9 @@ macro_rules! impl_op {
                     (Inline(x), Inline(y)) => x
                         .$checked_op(y)
                         .map_or_else(|| Heap(BigInt::from(x).$op(y)), Inline),
-                    (Heap(h), Inline(x)) => Heap(h.$op(x)),
-                    (Inline(x), Heap(h)) => Heap(x.$op(h)),
-                    (Heap(h1), Heap(h2)) => Heap(h1.$op(h2)),
+                    (Heap(h), Inline(x)) => h.$op(x).into(),
+                    (Inline(x), Heap(h)) => x.$op(h).into(),
+                    (Heap(h1), Heap(h2)) => h1.$op(h2).into(),
                 }
             }
         }
@@ -85,6 +85,7 @@ impl ops::Neg for TinyInt {
     fn neg(self) -> Self {
         match self {
             Inline(x) => x.checked_neg().map_or(Heap(-BigInt::from(x)), Inline),
+            // TODO: Should we demote to Inline if `h.neg()` is `isize::MAX`?
             Heap(h) => Heap(h.neg()),
         }
     }
@@ -119,9 +120,10 @@ impl TryFrom<TinyInt> for usize {
     type Error = ();
     fn try_from(v: TinyInt) -> Result<Self, ()> {
         match v {
-            Inline(x) => x.try_into().map_err(|_| ()),
-            Heap(h) => h.try_into().map_err(|_| ()),
+            Inline(x) => x.try_into().ok(),
+            Heap(h) => h.try_into().ok(),
         }
+        .ok_or(())
     }
 }
 
@@ -147,7 +149,6 @@ mod tests {
         );
     }
     #[test]
-    #[ignore]
     fn add_demote() {
         assert_eq!(
             Heap(BigInt::from(isize::MIN) - 69) + Inline(69),
@@ -173,7 +174,6 @@ mod tests {
         );
     }
     #[test]
-    #[ignore]
     fn sub_demote() {
         assert_eq!(
             Heap(BigInt::from(isize::MAX) + 69) - Inline(69),
@@ -199,7 +199,6 @@ mod tests {
         );
     }
     #[test]
-    #[ignore]
     fn mul_demote() {
         assert_eq!(Heap(BigInt::from(isize::MAX)) * Inline(0), Inline(0));
     }
@@ -210,8 +209,8 @@ mod tests {
     #[test]
     fn div_heaps() {
         assert_eq!(
-            Heap(BigInt::from(isize::MIN)) / Heap(BigInt::from(isize::MAX)),
-            Heap(BigInt::from(isize::MIN) / BigInt::from(isize::MAX))
+            Heap(BigInt::from(5_isize).pow(100)) / Heap(BigInt::from(25_isize)),
+            Heap(BigInt::from(5_isize).pow(98))
         );
     }
     #[test]
@@ -220,10 +219,16 @@ mod tests {
             Inline(isize::MIN) / Inline(-1),
             Heap(BigInt::from(isize::MAX) + 1)
         );
+        assert_eq!(
+            Inline(isize::MIN) / Heap(BigInt::from(-1_isize)),
+            Heap(BigInt::from(isize::MAX) + 1)
+        );
     }
     #[test]
-    #[ignore]
     fn div_demote() {
-        assert_eq!(Heap(BigInt::from(isize::MAX)) / Inline(2), Inline(isize::MAX / 2));
+        assert_eq!(
+            Heap(BigInt::from(isize::MAX)) / Inline(2),
+            Inline(isize::MAX / 2)
+        );
     }
 }
