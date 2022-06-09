@@ -13,9 +13,8 @@ use TinyInt::{Heap, Inline};
 impl TinyInt {
     pub fn is_zero(&self) -> bool {
         match self {
-            Inline(0) => true,
-            Heap(h) if h.is_zero() => true,
-            _ => false,
+            Inline(x) => x.is_zero(),
+            Heap(h) => h.is_zero(),
         }
     }
     pub fn is_negative(&self) -> bool {
@@ -28,12 +27,22 @@ impl TinyInt {
         Inline(0)
     }
     pub fn checked_div(self, rhs: &Self) -> Option<Self> {
+        let checked_isize_div = |x: isize, y: isize| {
+            x.checked_div(y)
+                .map(Inline)
+                .or_else(|| (y == -1).then(|| Heap(-BigInt::from(x))))
+        };
         match (self, rhs) {
-            (Inline(x), &Inline(y)) => x.checked_div(y).map(Inline),
+            (Inline(x), &Inline(y)) => checked_isize_div(x, y),
             (Heap(x), &Inline(y)) => (y != 0).then(|| Heap(x / y)),
             (Inline(x), Heap(y)) => {
-                let _ = (x, y);
-                todo!()
+                if let Ok(d) = y.try_into() {
+                    checked_isize_div(x, d)
+                } else if y.try_into() == Ok(isize::MAX as usize + 1) && x == isize::MIN {
+                    Some(Inline(-1))
+                } else {
+                    Some(Inline(0))
+                }
             }
             (Heap(x), Heap(y)) => x.checked_div(y).map(Heap),
         }
@@ -95,7 +104,10 @@ impl From<usize> for TinyInt {
 }
 impl From<BigInt> for TinyInt {
     fn from(x: BigInt) -> Self {
-        Heap(x)
+        match x.try_into() {
+            Ok(i) => Inline(i),
+            Err(e) => Heap(e.into_original()),
+        }
     }
 }
 impl TryFrom<TinyInt> for usize {
