@@ -117,3 +117,83 @@ impl TryFrom<TinyInt> for usize {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn add_inlines() {
+        assert_eq!(Inline(4) + Inline(5), Inline(9));
+    }
+    #[test]
+    fn add_heaps() {
+        assert_eq!(
+            Heap(BigInt::from(isize::MAX) + 4) + Heap(BigInt::from(isize::MAX) + 5),
+            Heap((BigInt::from(isize::MAX) * 2) + 9)
+        );
+    }
+    #[test]
+    fn add_promote() {
+        assert_eq!(
+            Inline(isize::MAX) + Inline(69),
+            Heap(BigInt::from(isize::MAX) + 69)
+        );
+    }
+    #[test]
+    #[ignore]
+    fn add_demote() {
+        assert_eq!(
+            Heap(BigInt::from(isize::MIN) - 69) + Inline(69),
+            Inline(isize::MIN)
+        );
+    }
+    #[test]
+    fn sub_inlines() {
+        assert_eq!(Inline(4) - Inline(5), Inline(-1));
+    }
+    #[test]
+    fn sub_heaps() {
+        assert_eq!(
+            Heap(BigInt::from(isize::MIN)) - Heap(BigInt::from(isize::MAX)),
+            Heap(BigInt::from(isize::MIN) * 2 + 1)
+        );
+    }
+    #[test]
+    fn sub_promote() {
+        assert_eq!(
+            Inline(isize::MIN) - Inline(69),
+            Heap(BigInt::from(isize::MIN) - 69)
+        );
+    }
+    #[test]
+    #[ignore]
+    fn sub_demote() {
+        assert_eq!(
+            Heap(BigInt::from(isize::MAX) + 69) - Inline(69),
+            Inline(isize::MAX)
+        );
+    }
+    #[test]
+    fn mul_inlines() {
+        assert_eq!(Inline(4) * Inline(5), Inline(20));
+    }
+    #[test]
+    fn mul_heaps() {
+        assert_eq!(
+            Heap(BigInt::from(isize::MIN)) * Heap(BigInt::from(isize::MAX)),
+            Heap(BigInt::from(isize::MIN) * BigInt::from(isize::MAX))
+        );
+    }
+    #[test]
+    fn mul_promote() {
+        assert_eq!(
+            Inline(isize::MAX) * Inline(2),
+            Heap(BigInt::from(isize::MAX) * 2)
+        );
+    }
+    #[test]
+    #[ignore]
+    fn mul_demote() {
+        assert_eq!(Heap(BigInt::from(isize::MAX)) * Inline(0), Inline(0));
+    }
+}
