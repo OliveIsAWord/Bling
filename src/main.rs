@@ -11,6 +11,7 @@ use parse::parse;
 
 use std::env;
 use std::fs;
+use std::time::Instant;
 use std::process::exit;
 
 fn main() {
@@ -37,8 +38,11 @@ fn main() {
     exec.initialize_builtins();
     //println!("INITIAL EXECUTOR ->\n    {:?}", exec);
     println!("\n=== OUTPUT ===");
+    let start_time = Instant::now();
     let result = exec.run();
+    let total_time = start_time.elapsed();
     println!("==============\n");
     //println!("FINISHED EXECUTOR ->\n    {:?}", exec);
     println!("RESULT ->\n    {:?}", result);
+    println!("Time Taken: {}μs", total_time.as_micros());
 }

@@ -1,0 +1,5 @@
+max := 10000
+i := 0
+while(() => sub(i max)
+    () => i = add(i 1)
+)
