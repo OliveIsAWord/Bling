@@ -82,7 +82,6 @@ impl ops::Neg for TinyInt {
         }
     }
 }
-
 impl fmt::Display for TinyInt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -91,7 +90,6 @@ impl fmt::Display for TinyInt {
         }
     }
 }
-
 impl From<isize> for TinyInt {
     fn from(x: isize) -> Self {
         Inline(x)
