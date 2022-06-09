@@ -203,4 +203,27 @@ mod tests {
     fn mul_demote() {
         assert_eq!(Heap(BigInt::from(isize::MAX)) * Inline(0), Inline(0));
     }
+    #[test]
+    fn div_inlines() {
+        assert_eq!(Inline(20) / Inline(5), Inline(4));
+    }
+    #[test]
+    fn div_heaps() {
+        assert_eq!(
+            Heap(BigInt::from(isize::MIN)) / Heap(BigInt::from(isize::MAX)),
+            Heap(BigInt::from(isize::MIN) / BigInt::from(isize::MAX))
+        );
+    }
+    #[test]
+    fn div_promote() {
+        assert_eq!(
+            Inline(isize::MIN) / Inline(-1),
+            Heap(BigInt::from(isize::MAX) + 1)
+        );
+    }
+    #[test]
+    #[ignore]
+    fn div_demote() {
+        assert_eq!(Heap(BigInt::from(isize::MAX)) / Inline(2), Inline(isize::MAX / 2));
+    }
 }
