@@ -57,21 +57,22 @@ fn checked_rem_euclid(lhs: TinyInt, rhs: TinyInt) -> Option<TinyInt> {
 
 #[test]
 fn euclidian() {
+    use TinyInt::Inline;
     assert_eq!(
-        checked_rem_euclid(13_i8.into(), 10_i8.into()).unwrap(),
-        3_u8.into()
+        checked_rem_euclid(Inline(13), Inline(10)).unwrap(),
+        Inline(3)
     );
     assert_eq!(
-        checked_rem_euclid((-13_i8).into(), 10_i8.into()).unwrap(),
-        7_u8.into()
+        checked_rem_euclid(Inline(-13), Inline(10)).unwrap(),
+        Inline(7)
     );
     assert_eq!(
-        checked_rem_euclid((-13_i8).into(), (-10_i8).into()).unwrap(),
-        (-3).into()
+        checked_rem_euclid(Inline(-13), Inline(-10)).unwrap(),
+        Inline(-3)
     );
     assert_eq!(
-        checked_rem_euclid(13_i8.into(), (-10_i8).into()).unwrap(),
-        (-7).into()
+        checked_rem_euclid(Inline(13), Inline(-10)).unwrap(),
+        Inline(-7)
     );
 }
 
