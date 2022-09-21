@@ -16,8 +16,8 @@ pub fn while_loop(exec: &mut Executor) -> ExecResult<Value> {
         (Value::Bytecode(condition, 0), Value::Bytecode(body, 0)) => {
             let mut output = Value::None;
             loop {
-                let cond_value = double_try!(exec.run_code_object(condition.clone()));
-                if !cond_value.truthiness() {
+                let cond_value = double_try!(exec.run_code_object(condition.clone())); // 5.16% clone, 91.65% run_code_object
+                if !cond_value.truthiness() { // 1.11% truthiness
                     break;
                 }
                 output = double_try!(exec.run_code_object(body.clone()));
@@ -76,8 +76,8 @@ fn euclidian() {
     );
 }
 
-arithmetic_intrinsic! {add, |x, y| Value::Number(x + y)}
-arithmetic_intrinsic! {sub, |x, y| Value::Number(x - y)}
+arithmetic_intrinsic! {add, |x, y| Value::Number(x + y)} // 7.80%
+arithmetic_intrinsic! {sub, |x, y| Value::Number(x - y)} // 7.58%
 arithmetic_intrinsic! {mul, |x, y| Value::Number(x * y)}
 arithmetic_intrinsic! {div,
     |x: TinyInt, y: TinyInt| x.checked_div(&y).map_or(Value::None, Value::Number)

@@ -73,13 +73,13 @@ impl Executor {
         }
     }
 
-    pub fn run(&mut self) -> ExecResult<()> {
+    pub fn run(&mut self) -> ExecResult<()> { // 58.15%
         loop {
             if let Some(&op) = self.code.ops.get(self.op_pointer) {
                 self.op_pointer += 1;
                 //println!("Current State:\n{:?}\n", self);
                 //println!("Running Op: {:?}", op);
-                double_try!(self.run_step(op));
+                double_try!(self.run_step(op)); // 55.02%
             } else if self.depth > 0 {
                 self.exit_subroutine()?;
             } else {
@@ -88,7 +88,16 @@ impl Executor {
         }
     }
 
-    fn run_step(&mut self, op: Op) -> ExecResult<()> {
+    fn run_step(&mut self, op: Op) -> ExecResult<()> { // 55.02%
+        // run_builtin 19.05%
+        // Lookup value 13.16%
+        // Value clone 7.99%
+        // Lookup value mut 1.09%
+        // Push element to vec 1.03%
+        // Pop emelemt from vec 0.91%
+        // Executor::run 0.42%
+        // Value drop_in_place 0.36%
+        // slice::get 0.04%
         match op {
             Op::GetConstant(val_index) => {
                 let val = self
@@ -206,44 +215,40 @@ impl Executor {
     //     }
     // }
 
-    fn enter_subroutine(&mut self, routine: Code, _num_args: usize) {
+    fn enter_subroutine(&mut self, routine: Code, _num_args: usize) { // 19.32%
         let ptr = self.op_pointer;
-        let idents = mem::take(&mut self.idents);
-        let child = Self::from_code(routine, idents);
+        let idents = mem::take(&mut self.idents); // mem::take 1.25%
+        let child = Self::from_code(routine, idents); // 8.11%
         // `self` becomes `parent`, and `child` becomes `self`
-        let mut parent = mem::replace(self, child);
+        let mut parent = mem::replace(self, child); // 1.60%
         self.stack = mem::take(&mut parent.stack);
-        self.parent = Some((Box::new(parent), ptr));
+        self.parent = Some((Box::new(parent), ptr)); // 2.19%
         self.op_pointer = 0;
         self.depth += 1;
     }
 
-    fn exit_subroutine(&mut self) -> InternalResult<()> {
-        let (parent, ptr) = mem::take(&mut self.parent).ok_or(InternalError::CallStackUnderflow)?;
-        let child = mem::replace(self, *parent);
+    fn exit_subroutine(&mut self) -> InternalResult<()> { // 13.24%
+        let (parent, ptr) = mem::take(&mut self.parent).ok_or(InternalError::CallStackUnderflow)?; // mem::take 0.08%, ok_or 0.08%
+        let child = mem::replace(self, *parent); // 2.61%
         self.stack = child.stack;
         self.op_pointer = ptr;
         // self.depth -= 1;
         Ok(())
+        // freeing and dropping 8.99%
     }
 
-    fn run_code_object(&mut self, code: Code) -> ExecResult<Value> {
+    fn run_code_object(&mut self, code: Code) -> ExecResult<Value> { // 91.65%
         // Run as if we are the main execution.
         let depth = self.depth;
-        self.enter_subroutine(code, 0);
+        self.enter_subroutine(code, 0); // 19.32%
         self.depth = 0;
-        double_try!(self.run());
-        self.exit_subroutine()?;
+        double_try!(self.run()); // 58.15%
+        self.exit_subroutine()?; // 13.24%
         self.depth = depth;
-        self.pop_stack().map(Ok)
-        // let mut child = self.clone();
-        // child.enter_subroutine(code, 0);
-        // child.depth = 0;
-        // double_try!(child.run());
-        // child.pop_stack().map(Ok)
+        self.pop_stack().map(Ok) // 0.65%
     }
 
-    fn run_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> {
+    fn run_builtin(&mut self, intrinsic: Intrinsic) -> ExecResult<()> { // 19.05%
         let return_value = double_try!(match intrinsic {
             Intrinsic::Print => intrinsics::print(self),
             Intrinsic::While => intrinsics::while_loop(self),
