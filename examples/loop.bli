@@ -1,8 +1,0 @@
-x := 5
-while( () => {x}
-    () => {
-        print(x)
-        x = sub(x 1)
-    }
-)
-print(0)

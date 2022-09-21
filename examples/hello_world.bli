@@ -1,7 +1,0 @@
-print(01134)
-print(80085)
-print(-2305567963945518424753102147331756070)
-print({})
-print(push(push(push(list() 2) 5) 6))
-print((x y z) => {})
-print(print)

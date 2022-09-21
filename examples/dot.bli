@@ -1,6 +1,0 @@
-dot_product := (x y) => {
-    sum(each(
-        zip(x y)
-        (a b) => mul(a b)
-    ))
-}

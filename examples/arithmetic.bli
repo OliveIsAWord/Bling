@@ -1,6 +1,0 @@
-x := 23
-y := 3
-print(add(x y))
-print(sub(x y))
-print(mul(x y))
-print(div(x y))

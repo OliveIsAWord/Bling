@@ -1,5 +1,0 @@
-x := 0
-increment := () => x = 5
-no_op := () => x := 6
-increment()
-no_op()

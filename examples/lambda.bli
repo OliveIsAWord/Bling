@@ -1,4 +1,0 @@
-choose_first := (x y) => x
-choose_second := (x y) => y
-a := choose_first(1 2)
-b := choose_second(1 2)

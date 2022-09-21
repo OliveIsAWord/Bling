@@ -1,9 +1,0 @@
-blah := 6
-xo := {
-    a := blah
-    blah = 777
-    a
-}
-bbb := {}
-{ 5 }
-aaa := 7
