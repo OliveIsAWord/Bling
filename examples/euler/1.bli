@@ -1,0 +1,48 @@
+max := 1000
+factors := push(push(list() 3) 5)
+
+multiples := list()
+factor_accum := map((_) => 0 factors)
+i := 1
+
+if_else := (condition body_true body_false) => {
+    is_true := 1
+    return := {}
+    while(() => condition () => {
+        is_true = condition = {}
+        return = body_true()
+    })
+    while(() => is_true () => {
+        is_true = {}
+        return = body_false()
+    })
+    return
+}
+
+prin := (_) => {}
+
+while(() => sub(i max) () => {
+    is_factor := 0
+    factor_accum = map(
+        (x) => {
+            new_accum := add(at(x 0) 1)
+            if_else(sub(new_accum at(x 1))
+                () => new_accum
+                () => {
+                    is_factor = 1
+                    0
+                }
+            )
+        }
+        zip(factor_accum factors)
+    )
+    if_else(is_factor
+        () => multiples = push(multiples i)
+        () => {}
+    )
+    i = add(i 1)
+})
+
+sum := fold((x y) => add(x y) multiples)
+print(sum)
+print(233168)
