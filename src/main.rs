@@ -1,5 +1,7 @@
 //! An interpreter for the Bling programming language.
 
+#![forbid(unsafe_code)]
+
 mod compile;
 mod interpret;
 mod parse;
