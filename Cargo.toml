@@ -4,4 +4,5 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-nom = { version = "7.1.1", default-features = false }
+nom = "7.1.1"
+nom_locate = "4.0.0"
